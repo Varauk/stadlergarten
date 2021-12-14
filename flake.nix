@@ -3,11 +3,10 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  # Upstream source, but let's use our copy for now
-  #inputs.erdbeermet = {
-  #  url = "github:david-schaller/Erdbeermet/main";
-  #  flake = false;
-  #};
+  inputs.erdbeermetUpstream = {
+    url = "github:david-schaller/Erdbeermet/main";
+    flake = false;
+  };
   inputs.erdbeermet = {
     url = "path:./erdbeermet";
     flake = false;
@@ -16,9 +15,6 @@
   outputs = inputs@{ self, flake-utils, nixpkgs, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-
-        lock = builtins.fromJSON (builtins.readFile ./flake.lock);
-        lockErdbeerMet = lock.nodes.erdbeermet.locked;
 
         pkgs = import nixpkgs { inherit system; };
 
@@ -42,10 +38,7 @@
         erdbeermet = pkgs.callPackage erdbeermetPkg { };
 
         erdbeermetUpstream = pkgs.callPackage erdbeermetPkg {
-          src = pkgs.fetchFromGitHub {
-            inherit (lockErdbeerMet) owner repo rev;
-            sha256 = lockErdbeerMet.narHash;
-          };
+          src = inputs.erdbeermetUpstream;
         };
 
       in {

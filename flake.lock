@@ -12,6 +12,23 @@
         "type": "path"
       }
     },
+    "erdbeermetUpstream": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1639070302,
+        "narHash": "sha256-XpuLbGMZAHsPbAhNxJ9+3xL89gEjIEsi4R0IoAeOsbA=",
+        "owner": "david-schaller",
+        "repo": "Erdbeermet",
+        "rev": "fdd268774bdad77adf67483a747739b97c9dd8b7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "david-schaller",
+        "ref": "main",
+        "repo": "Erdbeermet",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "locked": {
         "lastModified": 1638122382,
@@ -46,6 +63,7 @@
     "root": {
       "inputs": {
         "erdbeermet": "erdbeermet",
+        "erdbeermetUpstream": "erdbeermetUpstream",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs"
       }
