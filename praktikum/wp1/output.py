@@ -30,6 +30,9 @@ class Output:
 
         print("* Count of diverging steps was " + str(self.divergence) + ".\n")
 
+        if self.measuredRuntime != 0.0:
+            print("* This task took " + str(self.measuredRuntime) + " seconds.\n")     
+ 
         # Plotters
 
         if self.plotMatrix:
