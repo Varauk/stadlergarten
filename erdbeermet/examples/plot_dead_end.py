@@ -25,7 +25,7 @@ rec_tree.visualize()
 
 # visualize metric on remaining 4 elements
 for v in rec_tree.preorder():
-    
+
     if v.n == 4 and v.info == 'spikes too short':
         V, D = v.V, v.D
         print(f'plotting box for {V} .........')
