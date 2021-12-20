@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+.idea/
+.spyproject/
+*~
+build/
+dist/
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+bin/
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# LaTeX
+*.log
+*.aux
+*.bbl
+*.out
+*.gz
+*.blg
+*.lof
+*.toc
+_minted*/
+*.pyg
+
+# others
+testfile*
+*.DS_Store
+erdbeermet/src/erdbeermet.egg-info
