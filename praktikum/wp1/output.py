@@ -10,15 +10,17 @@ class Output:
     plotSteps = False
     plotBoxPlots = False
 
+    def __init__(self):
+        pass
 
-    def __init__(self, classifiedAsRMap, classifiedMatchingFourLeaves, divergence, measuredRuntime, plotMatrix, plotSteps, plotBoxPlots):
-        self.classifiedAsRMap = classifiedAsRMap
-        self.classifiedMatchingFourLeaves = classifiedMatchingFourLeaves
-        self.divergence = divergence
-        self.measuredRuntime = measuredRuntime
-        self.plotMatrix = plotMatrix
-        self.plotSteps = plotSteps
-        self.plotBoxPlots = plotBoxPlots
+    #def __init__(self, classifiedAsRMap, classifiedMatchingFourLeaves, divergence, measuredRuntime, plotMatrix, plotSteps, plotBoxPlots):
+    #    self.classifiedAsRMap = classifiedAsRMap
+    #    self.classifiedMatchingFourLeaves = classifiedMatchingFourLeaves
+    #    self.divergence = divergence
+    #    self.measuredRuntime = measuredRuntime
+    #    self.plotMatrix = plotMatrix
+    #    self.plotSteps = plotSteps
+    #    self.plotBoxPlots = plotBoxPlots
 
     def print(self):
         print("Statistics for this runtrough:\n")
