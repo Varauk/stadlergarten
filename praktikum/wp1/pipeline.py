@@ -14,7 +14,8 @@ from output import Output
 def pipeline(size=10, circular=False, clocklike=False, predefinedSimulationMatrix=None, measurePerformance=False, measureDivergence=False, passLeafes=None, output=None, first_candidate_only = False, print_info=False):
 
     if measurePerformance:
-        startTime = timer()    
+        startTime = timer()  
+        #print(startTime)  
 
     if (predefinedSimulationMatrix is None):
         # generate scenario
@@ -25,13 +26,21 @@ def pipeline(size=10, circular=False, clocklike=False, predefinedSimulationMatri
         if measurePerformance:
             # measure time
             endTime = timer()
-            output.measuredRuntime = startTime - endTime
+            #print(endTime)
+            output.measuredRuntime = endTime - startTime
     else:
         # use supplied matrix
         recognition_tree = recognizeWrapper(predefinedSimulationMatrix, first_candidate_only=first_candidate_only, print_info=print_info, measurePerformance=measurePerformance, measureDivergence=measureDivergence, passLeafes=passLeafes, output=output)
 
-        # print single outputs if needed
-        # output.print()
+        if measurePerformance:
+            # measure time
+            endTime = timer()
+            #print(endTime)
+            output.measuredRuntime = endTime - startTime
+    # print single outputs if needed
+    # output.print()
+
+        
 
 
 def recognizeWrapper(D, first_candidate_only=False, print_info=False, measurePerformance=False, measureDivergence=False, passLeafes=None, output=None):
@@ -44,19 +53,22 @@ def testOutputClass():
 
 
 def wp2benchmark(): 
+    # TODO: Ladebalken yikes
+
 
     # for every matrix which was generated: Load it, and use the pipeline on it.
     # generate a new Output-Object for every of them and sum up Runtimes etc.
 
 
     # init values
-    overallRuntime = 0.0
+    overallRuntime = 0.0 
     numberOfRMaps = 0.0
     numberOfMatchingFourLeafs = 0.0
     sumOfDivergence = 0.0
 
     # load the files
-    path = '../../test-matrices/hists/*.txt'
+    #path = '../../test-matrices/hists/*.txt'
+    path = '../../test-matrices/subtest/*.txt'
     filePaths = glob.glob(path)
     #print(len(filePaths))
 
@@ -111,10 +123,10 @@ def wp2benchmark():
 
     # return the benchmark results in a nice format
     print("------------WP2Benchmark------------------")
-    print("Overall runtime measured: " + overallRuntime)
-    print("Proportion of classified R-Maps is: " + numberOfRMaps/numberOfScenarios)
-    print("Proporion of 4-leaf-maps: " + numberOfMatchingFourLeafs/numberOfScenarios)
-    print("Average divergence is: " + sumOfDivergence / numberOfScenarios)
+    print("Overall runtime measured: " + str(overallRuntime))
+    print("Proportion of classified R-Maps is: " + str(numberOfRMaps/numberOfScenarios))
+    print("Proporion of 4-leaf-maps: " + str(numberOfMatchingFourLeafs/numberOfScenarios))
+    print("Average divergence is: " + str(sumOfDivergence / numberOfScenarios))
     print(" End of the Benchmark ")
 
 
