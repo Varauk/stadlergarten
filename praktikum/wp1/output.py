@@ -1,5 +1,3 @@
-# Imports
-
 
 class Output:
     classifiedAsRMap = False
@@ -13,7 +11,14 @@ class Output:
     def __init__(self):
         pass
 
-    #def __init__(self, classifiedAsRMap, classifiedMatchingFourLeaves, divergence, measuredRuntime, plotMatrix, plotSteps, plotBoxPlots):
+    # def __init__(self,
+    #              classifiedAsRMap,
+    #              classifiedMatchingFourLeaves,
+    #              divergence,
+    #              measuredRuntime,
+    #              plotMatrix,
+    #              plotSteps,
+    #              plotBoxPlots):
     #    self.classifiedAsRMap = classifiedAsRMap
     #    self.classifiedMatchingFourLeaves = classifiedMatchingFourLeaves
     #    self.divergence = divergence
@@ -24,7 +29,7 @@ class Output:
 
     def print(self):
         print("Statistics for this runtrough:\n")
-        
+
         if self.classifiedAsRMap:
             print("* Was correctly recognized as an R-Map.\n")
         if self.classifiedMatchingFourLeaves:
@@ -33,10 +38,11 @@ class Output:
         print("* Count of diverging steps was " + str(self.divergence) + ".\n")
 
         if self.measuredRuntime != 0.0:
-            print("* This task took " + str(self.measuredRuntime) + " seconds.\n")     
- 
-        # Plotters
+            print("* This task took "
+                  + str(self.measuredRuntime)
+                  + " seconds.\n")
 
+        # Plotters
         if self.plotMatrix:
             pass
         if self.plotSteps:
