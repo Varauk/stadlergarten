@@ -157,13 +157,13 @@ def wp2benchmark():
 
     # return the benchmark results in a nice format
     print("------------WP2Benchmark------------------")
-    print("Overall runtime measured: "
-          + str(overallRuntime))
-    print("Proportion of classified R-Maps is: "
-          + str(numberOfRMaps/numberOfScenarios))
-    print("Proporion of 4-leaf-maps: "
-          + str(numberOfMatchingFourLeafs/numberOfScenarios))
-    print("Average divergence is: " + str(sumOfDivergence / numberOfScenarios))
+    print("Overall runtime measured: {}".format(overallRuntime))
+    print("Proportion of classified R-Maps is: {}"
+          .format(numberOfRMaps/numberOfScenarios))
+    print("Proporion of 4-leaf-maps: {}"
+          .format(numberOfMatchingFourLeafs/numberOfScenarios))
+    print("Average divergence is: {}"
+          .format(sumOfDivergence / numberOfScenarios))
     print(" End of the Benchmark ")
 
 

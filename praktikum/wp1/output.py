@@ -35,12 +35,10 @@ class Output:
         if self.classifiedMatchingFourLeaves:
             print("* The final 4-leaf-map matches the original 4-leaf-map!\n")
 
-        print("* Count of diverging steps was " + str(self.divergence) + ".\n")
+        print("* Count of diverging steps was {}.\n".format(self.divergence))
 
         if self.measuredRuntime != 0.0:
-            print("* This task took "
-                  + str(self.measuredRuntime)
-                  + " seconds.\n")
+            print("* The task took {} seconds.\n".format(self.measuredRuntime))
 
         # Plotters
         if self.plotMatrix:
