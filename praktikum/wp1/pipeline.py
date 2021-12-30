@@ -5,6 +5,7 @@ from erdbeermet.recognition import recognize
 # Python packages
 from timeit import default_timer as timer
 import glob
+import numpy as np
 
 # Own classes
 from output import Output
@@ -82,7 +83,8 @@ def recognizeWrapper(D,
             if current_node.n == 4 and current_node.valid_ways == 1:
                 # Compare matrix current_node.D and matrix passLeafes right here (write a function for this, both are 4x4 and symmetric). 
                 # If we find one match return true on leafes_match
-                pass #TODO
+                if np.array_equal(passLeafes, current_node.D):
+                    leafes_match = True
 
 
     # divergence TODO Here we will maybe need to compare the history of the original one and the r-steps of the treenodes somehow.
