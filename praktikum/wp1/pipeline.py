@@ -24,39 +24,33 @@ def pipeline(size=10,
     if measurePerformance:
         startTime = timer()
 
+    simulationMatrix = None
+
     if (predefinedSimulationMatrix is None):
         # generate scenario
         scenario = simulate(size, circular=circular, clocklike=clocklike)
-        print(scenario.D)
-        recognition_tree = recognizeWrapper(
-            scenario.D,
-            first_candidate_only=first_candidate_only,
-            print_info=print_info,
-            measurePerformance=measurePerformance,
-            measureDivergence=measureDivergence,
-            passLeafes=passLeafes,
-            output=output)
+        simulationMatrix = scenario.D
+        # print(scenario.D)
 
-        if measurePerformance:
-            # measure time
-            endTime = timer()
-            output.measuredRuntime = endTime - startTime
     else:
         # use supplied matrix
-        recognition_tree = recognizeWrapper(
-            predefinedSimulationMatrix,
+        simulationMatrix = predefinedSimulationMatrix
+        
+    recognizeWrapper(
+            simulationMatrix,
             first_candidate_only=first_candidate_only,
             print_info=print_info,
             measurePerformance=measurePerformance,
             measureDivergence=measureDivergence,
             passLeafes=passLeafes,
-            output=output)
-        # TODO: Use the above tree!
+            output=output)        
 
-        if measurePerformance:
-            # measure time
-            endTime = timer()
-            output.measuredRuntime = endTime - startTime
+    if measurePerformance:
+        # measure time
+        endTime = timer()
+        output.measuredRuntime = endTime - startTime
+
+
     # print single outputs if needed
     # output.print()
 
@@ -68,7 +62,48 @@ def recognizeWrapper(D,
                      measureDivergence=False,
                      passLeafes=None,
                      output=None):
-    return recognize(D, first_candidate_only, print_info)
+    # TODO: Somehow use the recognition_tree of recognize() to compare its first four leafes with the passed ones, calculate divergence and check for rmap
+    recognition_tree = recognize(D, first_candidate_only, print_info)
+    
+    # recognition_tree.visualize()
+
+    # You can imagine the root of this tree as all vertices given by the simulated matrix. Then it tries to reconstruct r-steps
+    # by deleting a node and recalculates the distances and checks the laws of r-matrices. This is the way how it constructs its childs.
+
+
+
+    # leafes - we will traverse the tree and check for its treenodes with only four vertices. We will compare them to the passed ones.  
+    # maybe if we compare the distance matrices?? The problem is: In the simulation vertices are created with increasing numbers. 
+    # therefore the first four leafes are always 0,1,2,3. So my idea is to use the distance matrix of the original four leafes and check for that.
+    
+    leafes_match = False
+    if passLeafes is not None:
+        for current_node in recognition_tree.preorder():
+            if current_node.n == 4 and current_node.valid_ways == 1:
+                # Compare matrix current_node.D and matrix passLeafes right here (write a function for this, both are 4x4 and symmetric). 
+                # If we find one match return true on leafes_match
+                pass #TODO
+
+
+    # divergence TODO Here we will maybe need to compare the history of the original one and the r-steps of the treenodes somehow.
+    current_divergence = 0
+    if measureDivergence: 
+        pass
+    
+    # RMap - we can check this with the valid_ways attribute of the root node
+    was_classified_as_R_Map = False
+
+    if recognition_tree.root.valid_ways > 0 :
+        was_classified_as_R_Map = True
+    
+    # print("Valid ways of the root-Node: {}".format(recognition_tree.root.valid_ways))
+
+    # Set corresponding values in the current output-Object
+    output.divergence = current_divergence
+    output.classifiedMatchingFourLeaves = leafes_match
+    output.classifiedAsRMap = was_classified_as_R_Map
+
+    return
 
 
 def testOutputClass():
@@ -128,6 +163,7 @@ def wp2benchmark():
 
         # load the corresponding matrix with a new Output Object
         scenario = load(filename=currentPath)
+        fourLeafScenario = load(filename=currentPath, stop_after=4)
         print(str(currentPath))
         # did it work? - obviously yes!
         # print(scenario.N)
@@ -141,6 +177,7 @@ def wp2benchmark():
                  predefinedSimulationMatrix=scenario.D,
                  measurePerformance=True,
                  measureDivergence=True,
+                 passLeafes=fourLeafScenario.D,
                  first_candidate_only=True,
                  output=currentOutput)
         # Note: PassedLeafs is none but divergence is true,
@@ -156,8 +193,9 @@ def wp2benchmark():
         overallRuntime += currentOutput.measuredRuntime
 
     # return the benchmark results in a nice format
-    print("------------WP2Benchmark------------------")
-    print("Overall runtime measured: {}".format(overallRuntime))
+    print("\n\n------------WP2Benchmark------------------")
+    print("Number of simulated matrices: {}".format(numberOfScenarios))
+    print("Overall runtime measured: {} seconds needed.".format(overallRuntime))
     print("Proportion of classified R-Maps is: {}"
           .format(numberOfRMaps/numberOfScenarios))
     print("Proporion of 4-leaf-maps: {}"
