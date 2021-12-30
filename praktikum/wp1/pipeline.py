@@ -85,6 +85,7 @@ def recognizeWrapper(D,
                 # If we find one match return true on leafes_match
                 if np.array_equal(passLeafes, current_node.D):
                     leafes_match = True
+                    break
 
 
     # divergence TODO Here we will maybe need to compare the history of the original one and the r-steps of the treenodes somehow.
