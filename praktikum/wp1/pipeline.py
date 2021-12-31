@@ -83,11 +83,20 @@ def recognizeWrapper(D,
             if current_node.n == 4 and current_node.valid_ways == 1:
                 # Compare matrix current_node.D and matrix passLeafes right here (write a function for this, both are 4x4 and symmetric). 
                 # If we find one match return true on leafes_match
-                if np.array_equal(passLeafes, current_node.D):
+                # print(current_node.D)
+                # if np.array_equal(passLeafes, current_node.D):
+                #     leafes_match = True
+                    # Problem arises: Even for the same path, the resulting matrices are not equal! This means we really have to check the list of nodes.
+        
+                # other way: check current list of vertices against list of  which was passed in passLeafes
+                if sorted(current_node.V) == sorted(passLeafes):
                     leafes_match = True
+                    print("Leafes matched!")
 
 
     # divergence TODO Here we will maybe need to compare the history of the original one and the r-steps of the treenodes somehow.
+    # Tactic: Lets collect all r-steps from the reconstructed tree in a set. Then we compare this set to the original steps. So we will see
+    # if there are steps which could not be reconstructed.
     current_divergence = 0
     if measureDivergence: 
         pass
@@ -136,6 +145,7 @@ def wp2benchmark():
     # load the files
     # path = '../../test-matrices/hists/*.txt'
     path = '../../test-matrices/subtest/*.txt'
+    # path = '../../test-matrices/singletest/*.txt'
     filePaths = glob.glob(path)
     # print(len(filePaths))
 
@@ -165,7 +175,7 @@ def wp2benchmark():
 
         # load the corresponding matrix with a new Output Object
         scenario = load(filename=currentPath)
-        fourLeafScenario = load(filename=currentPath, stop_after=4)
+        # fourLeafScenario = load(filename=currentPath, stop_after=4)
         print(str(currentPath))
         # did it work? - obviously yes!
         # print(scenario.N)
@@ -179,7 +189,7 @@ def wp2benchmark():
                  predefinedSimulationMatrix=scenario.D,
                  measurePerformance=True,
                  measureDivergence=True,
-                 passLeafes=fourLeafScenario.D,
+                 passLeafes=[0,1,2,3],
                  first_candidate_only=True,
                  output=currentOutput)
         # Note: PassedLeafs is none but divergence is true,
@@ -193,6 +203,10 @@ def wp2benchmark():
             numberOfMatchingFourLeafs += 1
         sumOfDivergence += currentOutput.divergence
         overallRuntime += currentOutput.measuredRuntime
+
+        # print("Aimed for this matrix:")
+        # print(fourLeafScenario.D)
+        
 
     # return the benchmark results in a nice format
     print("\n\n------------WP2Benchmark------------------")
