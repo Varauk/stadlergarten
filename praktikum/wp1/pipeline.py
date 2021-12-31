@@ -21,6 +21,8 @@ def pipeline(size=10,
              history=None,
              output=None,
              first_candidate_only=False,
+             skipLeaves=False,
+             forbiddenLeaves=None,
              print_info=False):
 
     if measurePerformance:
@@ -46,6 +48,8 @@ def pipeline(size=10,
             measureDivergence=measureDivergence,
             history=history,
             passLeafes=passLeafes,
+            skipLeaves=skipLeaves,
+            forbiddenLeaves=forbiddenLeaves,
             output=output)        
 
     if measurePerformance:
@@ -65,11 +69,19 @@ def recognizeWrapper(D,
                      measureDivergence=False,
                      history=None,
                      passLeafes=None,
+                     skipLeaves=False,
+                     forbiddenLeaves=None,
                      output=None):
     # Somehow use the recognition_tree of recognize() to compare its first four leafes with the passed ones, calculate divergence and check for rmap
-    recognition_tree = recognize(D, first_candidate_only, print_info)
     
-    # recognition_tree.visualize()
+    if skipLeaves:
+        # extract starting leaves from scenarios history
+        # use recognize with those forbidden leaves
+        recognition_tree = recognize(D, first_candidate_only, print_info, forbiddenLeaves)
+    else: 
+        recognition_tree = recognize(D, first_candidate_only, print_info)
+    
+    recognition_tree.visualize()
 
     # You can imagine the root of this tree as all vertices given by the simulated matrix. Then it tries to reconstruct r-steps
     # by deleting a node and recalculates the distances and checks the laws of r-matrices. This is the way how it constructs its childs.
@@ -176,7 +188,7 @@ def testOutputClass():
     return a
 
 
-def wp2benchmark():
+def benchmark(workPackage=2, skipLeaves=False, forbiddenLeaves=None):
     '''
     for every matrix which was generated: Load it, and use the
     pipeline on it. Generate a new Output-Object for every of them
@@ -191,8 +203,8 @@ def wp2benchmark():
     sumOfDivergence = 0.0
 
     # load the files
-    path = '../../test-matrices/hists/*.txt'
-    # path = '../../test-matrices/subtest/*.txt'
+    # path = '../../test-matrices/hists/*.txt'
+    path = '../../test-matrices/subtest/*.txt'
     # path = '../../test-matrices/singletest/*.txt'
     filePaths = glob.glob(path)
     # print(len(filePaths))
@@ -228,6 +240,7 @@ def wp2benchmark():
         # did it work? - obviously yes!
         # print(scenario.N)
 
+        # Create our Object where the evaluation will be captured.
         currentOutput = Output()
 
         # use the pipeline on it
@@ -240,6 +253,8 @@ def wp2benchmark():
                  passLeafes=[0,1,2,3],
                  first_candidate_only=True,
                  history=scenario.history,
+                 forbiddenLeaves=forbiddenLeaves,
+                 skipLeaves=skipLeaves,
                  output=currentOutput)
         # Note: PassedLeafs is none but divergence is true,
         # does this result in difficulties?
@@ -258,7 +273,7 @@ def wp2benchmark():
         
 
     # return the benchmark results in a nice format
-    print("\n\n------------WP2Benchmark------------------")
+    print("\n\n------------WP{}Benchmark------------------".format(workPackage))
     print("Number of simulated matrices: {}".format(numberOfScenarios))
     print("Overall runtime measured: {} seconds needed.".format(overallRuntime))
     print("Proportion of classified R-Maps is: {}"
@@ -275,3 +290,15 @@ def testFileLoad():
     files = glob.glob(path)
     for file in files:
         print(file)
+
+def wp2benchmark():
+    benchmark(workPackage=2, skipLeaves=False)
+
+def wp3benchmark():
+
+    # Determine which Leaves are forbidden to sort out in the recognition algorithm
+    benchmark(workPackage=3, skipLeaves=True, forbiddenLeaves=[0,1,2,3])
+
+    # TODO: Last point of WP3
+    # TODO: Do we have to split the implementation for 3/4 vertices? Or will we first try it without 4 vertices and afterwards without 3?
+    # Maybe this needs to be nested inside the pipeline since thats the place where we know how many vertices 
