@@ -144,8 +144,9 @@ def recognizeWrapper(D,
         result = history_r_steps.intersection(reconstructed_r_steps)
         # print("Result intersection")
         # print(result)
-        # return the result as one minus the proportion of successful reconstructed steps from all original steps. 
-        current_divergence =  1 - (len(result) / len(history_r_steps))
+        # return the result as one minus the proportion of successful reconstructed steps from all original steps. Care for cases with n=4.
+        if len(history_r_steps) != 0 :
+            current_divergence =  1 - (len(result) / len(history_r_steps))
 
 
     # RMap - we can check this with the valid_ways attribute of the root node
@@ -190,8 +191,8 @@ def wp2benchmark():
     sumOfDivergence = 0.0
 
     # load the files
-    # path = '../../test-matrices/hists/*.txt'
-    path = '../../test-matrices/subtest/*.txt'
+    path = '../../test-matrices/hists/*.txt'
+    # path = '../../test-matrices/subtest/*.txt'
     # path = '../../test-matrices/singletest/*.txt'
     filePaths = glob.glob(path)
     # print(len(filePaths))
