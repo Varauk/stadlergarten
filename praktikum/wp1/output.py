@@ -2,7 +2,7 @@
 class Output:
     classifiedAsRMap = False
     classifiedMatchingFourLeaves = False
-    divergence = 0
+    divergence = 0.0
     measuredRuntime = 0.0
     plotMatrix = False
     plotSteps = False

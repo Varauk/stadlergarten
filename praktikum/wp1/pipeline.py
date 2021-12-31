@@ -18,6 +18,7 @@ def pipeline(size=10,
              measurePerformance=False,
              measureDivergence=False,
              passLeafes=None,
+             history=None,
              output=None,
              first_candidate_only=False,
              print_info=False):
@@ -43,6 +44,7 @@ def pipeline(size=10,
             print_info=print_info,
             measurePerformance=measurePerformance,
             measureDivergence=measureDivergence,
+            history=history,
             passLeafes=passLeafes,
             output=output)        
 
@@ -61,9 +63,10 @@ def recognizeWrapper(D,
                      print_info=False,
                      measurePerformance=False,
                      measureDivergence=False,
+                     history=None,
                      passLeafes=None,
                      output=None):
-    # TODO: Somehow use the recognition_tree of recognize() to compare its first four leafes with the passed ones, calculate divergence and check for rmap
+    # Somehow use the recognition_tree of recognize() to compare its first four leafes with the passed ones, calculate divergence and check for rmap
     recognition_tree = recognize(D, first_candidate_only, print_info)
     
     # recognition_tree.visualize()
@@ -94,13 +97,57 @@ def recognizeWrapper(D,
                     print("Leafes matched!")
 
 
-    # divergence TODO Here we will maybe need to compare the history of the original one and the r-steps of the treenodes somehow.
+    # divergence - Here we will maybe need to compare the history of the original one and the r-steps of the treenodes somehow.
     # Tactic: Lets collect all r-steps from the reconstructed tree in a set. Then we compare this set to the original steps. So we will see
     # if there are steps which could not be reconstructed.
-    current_divergence = 0
+    current_divergence = 0.0
+
     if measureDivergence: 
-        pass
-    
+        reconstructed_r_steps = set()
+        for current_node in recognition_tree.preorder():    
+            if current_node.valid_ways > 0 and current_node.R_step is not None:
+                # add all r_steps where the result was an r-map at the end
+                # but construct an new r-step which is comparable with them of the history
+                temp = (current_node.R_step[0], current_node.R_step[1], current_node.R_step[2], float("{:.6f}".format(current_node.R_step[3])))
+                # print("modified r-step:")
+                # print(newTople)
+                reconstructed_r_steps.add(temp)
+
+        # print("R-Steps")
+        # print(reconstructed_r_steps)
+        # now we need to check the reconstructed r-steps against the original ones.
+        # print("History")
+        # extract r-steps from history
+        history_r_steps = set()
+        offset_counter = 0
+        for entry in history:
+            # TODO: we have to skip the first four entries since we stop check for r-steps on 4 vertices
+            # print("Entry:")
+            # print(entry)
+            # print("resulting tuple as r-step:")
+            # we have to modifiy the values and sort them in the same order as the reconstructed r_steps are. (ascending)
+            # print(float("{:.6f}".format(entry[3])))
+            if entry[0] > entry[1]:
+                newTuple=(entry[1], entry[0], entry[2], float("{:.6f}".format(1-entry[3])))
+            else: 
+                newTuple=(entry[0], entry[1], entry[2], float("{:.6f}".format(entry[3])))
+            # print(newTuple)
+            # next problem: The last entry of alpha does not match on the last few digits sometimes. So I restricted it to 6 digits.
+            # skip first three entries
+            if offset_counter > 2:
+                history_r_steps.add(newTuple)
+
+            offset_counter += 1
+
+        # print(history_r_steps)
+        # now compare them. We use intersection to find elements that were contained in both.
+        result = history_r_steps.intersection(reconstructed_r_steps)
+        # print("Result intersection")
+        # print(result)
+        # return the result as one minus the proportion of successful reconstructed steps from all original steps. 
+        current_divergence =  1 - (len(result) / len(history_r_steps))
+
+
     # RMap - we can check this with the valid_ways attribute of the root node
     was_classified_as_R_Map = False
 
@@ -191,6 +238,7 @@ def wp2benchmark():
                  measureDivergence=True,
                  passLeafes=[0,1,2,3],
                  first_candidate_only=True,
+                 history=scenario.history,
                  output=currentOutput)
         # Note: PassedLeafs is none but divergence is true,
         # does this result in difficulties?
