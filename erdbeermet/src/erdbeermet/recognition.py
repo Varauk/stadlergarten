@@ -193,14 +193,12 @@ def _compute_alpha(V, D, x, y, z, u, v):
 
 
 def _find_candidates(D, V, print_info, B=None):
-
     candidates = []
     n = len(V)
 
     if print_info: print(f'-----> n = {n}, V = {V} ---> Candidates')
 
     for x, y, z in permutations(V, 3):
-
         # If z is in the list of original leafes, throw this combination away.
         if B is not None:
             if z in B:
@@ -218,7 +216,6 @@ def _find_candidates(D, V, print_info, B=None):
                 continue
 
             alpha[pos] = _compute_alpha(V, D, x, y, z, u, v)
-
             if not u_witness and not np.isnan(alpha[pos]):
                 u_witness = u
 
@@ -227,7 +224,6 @@ def _find_candidates(D, V, print_info, B=None):
         nan_mask = np.isnan(alpha)
 
         if not np.any(nan_mask) and np.allclose(alpha, alpha[0]):
-
             alpha[0] = _close_to_equal(alpha[0])
 
             if alpha[0] >= 0.0 and alpha[0] <= 1.0:
@@ -389,6 +385,16 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None):
         if n > 4:
 
             candidates = _find_candidates(D, V, print_info, B)
+
+            # TODO: Here is the entryPoint for WP4. We have to reorder the list of candidates, and get the candidate with the smallest spike consumption on the lowest indice.
+            # in a first step, iterate through the candidates and calculate all three spike-lengths. - how will we get d(x,z)? ... per matrix D? look at _compute_deltas for hints.
+            # Maybe we can use the _compute_delta_z too, but care for the position on parameters inside of it!
+            # Now find an efficient way to compare the candidates and order them by their spike lengths. 
+            # Problem?: What if we got A with (1,2,3) and B with (2,2,1)? Then A is on the first indice smaller - therefore smaller as B. But B is smaller on the third indice - so smaller
+            # as A too? - Ah lul, they excluded this case and said that this won't happen in the WP4 task description.
+            # TODO: Decide if we solve this with a graph. But it seems like a pairwise comparison would be enough too. We could use a map like they noted and compare all candidates
+            # with each other and count somehow so that we receive the smallest ones. 
+            # Finally order the list of candidates again so that the smallest candidate leads it. 
 
             found_valid = False
 

@@ -6,6 +6,7 @@ from erdbeermet.recognition import recognize
 from timeit import default_timer as timer
 import glob
 import numpy as np
+import itertools
 
 # Own classes
 from output import Output
@@ -23,7 +24,7 @@ def pipeline(size=10,
              first_candidate_only=False,
              skipLeaves=False,
              forbiddenLeaves=None,
-             print_info=False):
+             print_info=True):
 
     if measurePerformance:
         startTime = timer()
@@ -204,8 +205,8 @@ def benchmark(workPackage=2, skipLeaves=False, forbiddenLeaves=None):
 
     # load the files
     # path = '../../test-matrices/hists/*.txt'
-    path = '../../test-matrices/subtest/*.txt'
-    # path = '../../test-matrices/singletest/*.txt'
+    # path = '../../test-matrices/subtest/*.txt'
+    path = '../../test-matrices/singletest/*.txt'
     filePaths = glob.glob(path)
     # print(len(filePaths))
 
@@ -240,24 +241,35 @@ def benchmark(workPackage=2, skipLeaves=False, forbiddenLeaves=None):
         # did it work? - obviously yes!
         # print(scenario.N)
 
-        # Create our Object where the evaluation will be captured.
-        currentOutput = Output()
 
-        # use the pipeline on it
-        pipeline(size=scenario.N,
-                 clocklike=clocklike,
-                 circular=circular,
-                 predefinedSimulationMatrix=scenario.D,
-                 measurePerformance=True,
-                 measureDivergence=True,
-                 passLeafes=[0,1,2,3],
-                 first_candidate_only=True,
-                 history=scenario.history,
-                 forbiddenLeaves=forbiddenLeaves,
-                 skipLeaves=skipLeaves,
-                 output=currentOutput)
-        # Note: PassedLeafs is none but divergence is true,
-        # does this result in difficulties?
+
+        # Write here the Wrapper which shall guess the core leaves and tries to avoid them in the recognition. Run this until you find a valid R-Map.
+        # scenario.N has the number of items which were generated. So we need all subsets of N items with 3 respectively 4 leaves.
+        combinationsOfThreeLeafes = list(itertools.combinations([x for x in range(scenario.N)],3))
+        combinationsOfFourLeafes = list(itertools.combinations([x for x in range(scenario.N)],4))
+
+        # Rotate until you find a valid solution
+        foundValidRMap = False
+        # TODO: Use the different items of the combinations in forbiddenLeaves
+        while not foundValidRMap:
+
+            # Create our Object where the evaluation will be captured.  
+            currentOutput = Output()
+            # use the pipeline on it
+            pipeline(size=scenario.N,
+                     clocklike=clocklike,
+                    circular=circular,
+                    predefinedSimulationMatrix=scenario.D,
+                    measurePerformance=True,
+                    measureDivergence=True,
+                    passLeafes=[0,1,2,3],
+                    first_candidate_only=True,
+                    history=scenario.history,
+                    forbiddenLeaves=forbiddenLeaves,
+                    skipLeaves=skipLeaves,
+                    output=currentOutput)
+            if currentOutput.classifiedAsRMap:
+                foundValidRMap = True
 
         # use the modified values of the Output Object to
         # modify overall values of benchmark
@@ -301,4 +313,4 @@ def wp3benchmark():
 
     # TODO: Last point of WP3
     # TODO: Do we have to split the implementation for 3/4 vertices? Or will we first try it without 4 vertices and afterwards without 3?
-    # Maybe this needs to be nested inside the pipeline since thats the place where we know how many vertices 
+  
