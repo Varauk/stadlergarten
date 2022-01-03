@@ -3,7 +3,7 @@
     "erdbeermet": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-W2SjCysORMZ877E4HRcURs2I+AE/1PdF1HlC9nTbg30=",
+        "narHash": "sha256-wZGyCLE6Y094l3BtuP0RmbVI0yIkhBJW117WUkaNSL8=",
         "path": "./erdbeermet",
         "type": "path"
       },
@@ -46,11 +46,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1639442420,
-        "narHash": "sha256-GL4Q5gDXDHxLPZD1Rg8kk6M6S+NqxDjTu0XqGF/Xhuc=",
+        "lastModified": 1641135641,
+        "narHash": "sha256-Vh7B9JTgsx9/0bH7YxLkj4DA/WraY3pnBH8Tc+490YM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "69958994ab2c4c41f82db658ae6333b91079bcf6",
+        "rev": "61d24cba72831201efcab419f19b947cf63a2d61",
         "type": "github"
       },
       "original": {
