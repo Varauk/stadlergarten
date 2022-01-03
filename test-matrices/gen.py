@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
-import os
 from sys import argv, exit
 import math
 import random
 from pathlib import Path
+from glob import glob
 
 from erdbeermet.simulation import simulate
 
-PATH=Path('./hists')
-PROP_CIRCULAR=0.25
-PROP_CLOCKLIKE=0.25
-DEFAULT_MIN_MATRIX_SIZE=5
-DEFAULT_MAX_MATRIX_SIZE=25
+PATH = Path('./hists')
+PROP_CIRCULAR = 0.25
+PROP_CLOCKLIKE = 0.25
+DEFAULT_MIN_MATRIX_SIZE = 5
+DEFAULT_MAX_MATRIX_SIZE = 25
+
 
 def generate(count, min_size, max_size):
     # Really?
@@ -38,13 +39,22 @@ def generate(count, min_size, max_size):
             size,
             'i' if is_circular else '-',
             'o' if is_clocklike else '-',
-            count_len = count_len,
-            size_len = size_len)
-        print('Generating {} ..'.format(filename), end='')
+            count_len=count_len,
+            size_len=size_len)
+        print('Generating {}.. '.format(filename), end='')
 
         szenario = simulate(size, circular=is_circular, clocklike=is_clocklike)
         szenario.write_history(PATH/filename)
         print('done')
+
+
+def delete_old_hists():
+    print('Removing old hist files.. ', end='')
+    hists = PATH.glob('*')
+    for hist in hists:
+        hist.unlink()
+    print('done')
+
 
 if __name__ == '__main__':
     if len(argv) < 2:
@@ -53,4 +63,5 @@ if __name__ == '__main__':
     count = int(argv[1])
     min_size = argv[2] if len(argv) >= 3 else DEFAULT_MIN_MATRIX_SIZE
     max_size = argv[3] if len(argv) >= 4 else DEFAULT_MAX_MATRIX_SIZE
+    delete_old_hists()
     generate(count=count, min_size=min_size, max_size=max_size)
