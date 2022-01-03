@@ -205,9 +205,9 @@ def benchmark(workPackage=2, skipLeaves=False, forbiddenLeaves=None):
     sumOfDivergence = 0.0
 
     # load the files
-    # path = '../../test-matrices/hists/*.txt'
-    # path = '../../test-matrices/subtest/*.txt'
-    path = '../../test-matrices/singletest/*.txt'
+    # path = '../test-matrices/hists/*.txt'
+    # path = '../test-matrices/subtest/*.txt'
+    path = '../test-matrices/singletest/*.txt'
     filePaths = glob.glob(path)
     # print(len(filePaths))
 
@@ -299,7 +299,7 @@ def benchmark(workPackage=2, skipLeaves=False, forbiddenLeaves=None):
 
 
 def testFileLoad():
-    path = '../../test-matrices/hists/*.txt'
+    path = '../test-matrices/hists/*.txt'
     files = glob.glob(path)
     for file in files:
         print(file)
