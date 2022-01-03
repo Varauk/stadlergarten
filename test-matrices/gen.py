@@ -11,7 +11,7 @@ from erdbeermet.simulation import simulate
 PATH=Path('./hists')
 PROP_CIRCULAR=0.25
 PROP_CLOCKLIKE=0.25
-DEFAULT_MIN_MATRIX_SIZE=4
+DEFAULT_MIN_MATRIX_SIZE=5
 DEFAULT_MAX_MATRIX_SIZE=25
 
 def generate(count, min_size, max_size):
