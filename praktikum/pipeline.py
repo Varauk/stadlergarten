@@ -11,6 +11,7 @@ import itertools
 # Own classes
 from output import Output
 
+# TODO: Last point of WP1 is left.
 
 def pipeline(size=10,
              circular=False,
@@ -95,7 +96,7 @@ def recognizeWrapper(D,
     
     leafes_match = False
     if passLeafes is not None:
-        for current_node in recognition_tree.preorder():
+        for current_node in recognition_tree.postorder():
             if current_node.n == 4 and current_node.valid_ways == 1:
                 # Compare matrix current_node.D and matrix passLeafes right here (write a function for this, both are 4x4 and symmetric). 
                 # If we find one match return true on leafes_match

@@ -443,7 +443,7 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None):
                 stack.append(child)
 
                 # for n = 5 always check all candidates
-                if first_candidate_only and n > 5:
+                if first_candidate_only and n > 4:
                     break
 
             if not candidates or not found_valid:
