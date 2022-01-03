@@ -3,6 +3,7 @@ from erdbeermet.simulation import simulate, load
 from erdbeermet.recognition import recognize
 
 # Python packages
+from typing import Final
 from timeit import default_timer as timer
 import glob
 import numpy as np
@@ -11,7 +12,19 @@ import itertools
 # Own classes
 from output import Output
 
+# Constants
+WORK_PACKAGE_2: Final = 2
+WORK_PACKAGE_3: Final = 3
+WORK_PACKAGE_3_4: Final = 34
+
 # TODO: Last point of WP1 is left.
+# TODO: Parallelisierung
+# TODO: Formatierung vereinheitlichen
+# TODO: Don't TelL StaDlEr!!11
+# TODO: Output überarbeiten
+
+# TODO: Wenn er Dreier-Kombos testet, sind die erkannten Ergebnisse immer mit vier Vertices unterwegs. Wann ist dieser Fall dann richtig bzw gilt Leaves matched? 
+# Halbes TODO: Generation in pipeline überarbeiten (size, clocklike und circular)
 
 def pipeline(size=10,
              circular=False,
@@ -22,8 +35,7 @@ def pipeline(size=10,
              firstLeaves=None,
              history=None,
              output=None,
-             first_candidate_only=False,
-             skipLeaves=False,
+             first_candidate_only=True,
              forbiddenLeaves=None,
              print_info=False):
 
@@ -49,7 +61,6 @@ def pipeline(size=10,
             measureDivergence=measureDivergence,
             history=history,
             firstLeaves=firstLeaves,
-            skipLeaves=skipLeaves,
             forbiddenLeaves=forbiddenLeaves,
             output=output)        
 
@@ -64,7 +75,7 @@ def pipeline(size=10,
 
 
 def recognizeWrapper(D,
-                     first_candidate_only=False,
+                     first_candidate_only=True,
                      print_info=False,
                      measureDivergence=False,
                      history=None,
@@ -74,12 +85,12 @@ def recognizeWrapper(D,
                      output=None):
     
     # Shall recognize skip forbidden leafes?
-    if skipLeaves:
+    if forbiddenLeaves is not None:
         recognition_tree = recognize(D, first_candidate_only, print_info, forbiddenLeaves)
     else: 
         recognition_tree = recognize(D, first_candidate_only, print_info)
     
-    recognition_tree.visualize()
+    # recognition_tree.visualize()
     
     # Check: Match recosntructed leafes and orginal leafes?
     leafes_match = False
@@ -88,7 +99,7 @@ def recognizeWrapper(D,
             if current_node.n == 4 and current_node.valid_ways == 1:
                 
                 # Check current list of vertices against passLeafes-list
-                if sorted(current_node.V) == sorted(firstLeaves):
+                if sorted(current_node.V) == sorted(firstLeaves): # TODO current_node.V hat immer Länge 4, aber firstLeaves kann Länge 3-4 haben
                     leafes_match = True
                     print("Leafes matched!")
 
@@ -179,7 +190,7 @@ def testOutputClass():
     return a
 
 
-def benchmark(workPackage=2, firstLeaves=[0,1,2,3], skipLeaves=False, forbiddenLeaves=None):
+def benchmark(workPackage=2, firstLeaves=[0,1,2,3], forbiddenLeaves=None):
     '''
     for every matrix which was generated: Load it, and use the
     pipeline on it. Generate a new Output-Object for every of them
@@ -225,22 +236,32 @@ def benchmark(workPackage=2, firstLeaves=[0,1,2,3], skipLeaves=False, forbiddenL
         # Load the corresponding matrix with a new Output Object
         scenario = load(filename=currentPath)
 
-
         # Write here the Wrapper which shall guess the core leaves and tries to avoid them in the recognition. Run this until you find a valid R-Map.
         # scenario.N has the number of items which were generated. So we need all subsets of N items with 3 respectively 4 leaves.
-        combinationsOfThreeLeafes = list(itertools.combinations([x for x in range(scenario.N)],3))
-        combinationsOfFourLeafes = list(itertools.combinations([x for x in range(scenario.N)],4))
 
+
+        # ForbiddenLeaves is an int at the end of WP3.4 and a list at WP3.3.  
+        if type(forbiddenLeaves) is list:
+            combinationsOfLeafes = [forbiddenLeaves]
+        elif type(forbiddenLeaves) is int:
+            # We reverse the list because the solution [0,1,2,3] is always trivial and the first. More interesting are other solutions.
+            combinationsOfLeafes = reversed(list(itertools.combinations([x for x in range(scenario.N)], forbiddenLeaves)))
+        else:
+            combinationsOfLeafes=[None]
+
+        # print(combinationsOfFourLeafes)
         # Rotate until you find a valid solution
-        foundValidRMap = False
-        # TODO: Use the different items of the combinations in forbiddenLeaves
-        while not foundValidRMap:
-
+        for combination in combinationsOfLeafes:
+            # print("Checked combination: " + str(combination))
+            if combination is not None:
+                # The first leafes must correspond to the ones which are forbidden and therefore can't be deleted by the recognition algorithm.
+                firstLeaves = combination
+            # print("First leafes are: " + str(firstLeaves))
             # Create our Object where the evaluation will be captured.  
             currentOutput = Output()
             # use the pipeline on it
             pipeline(size=scenario.N,
-                     clocklike=clocklike,
+                    clocklike=clocklike,
                     circular=circular,
                     predefinedSimulationMatrix=scenario.D,
                     measurePerformance=True,
@@ -248,22 +269,21 @@ def benchmark(workPackage=2, firstLeaves=[0,1,2,3], skipLeaves=False, forbiddenL
                     firstLeaves=firstLeaves,
                     first_candidate_only=True,
                     history=scenario.history,
-                    forbiddenLeaves=forbiddenLeaves,
-                    skipLeaves=skipLeaves,
+                    forbiddenLeaves=combination,
                     output=currentOutput)
-            if currentOutput.classifiedAsRMap:
-                foundValidRMap = True
-            else: 
-                # Normally rotate through the forbiddenLeaves but this is not yet implemented, so: TODO
-                foundValidRMap = True
 
         # Use the values of the current Output Object to modify overall values of benchmark
-        if (currentOutput.classifiedAsRMap):
-            numberOfRMaps += 1
-        if (currentOutput.classifiedMatchingFourLeaves):
-            numberOfMatchingFourLeafs += 1
-        sumOfDivergence += currentOutput.divergence
-        overallRuntime += currentOutput.measuredRuntime
+            if (currentOutput.classifiedAsRMap):
+                numberOfRMaps += 1
+            if (currentOutput.classifiedMatchingFourLeaves):
+                numberOfMatchingFourLeafs += 1
+            sumOfDivergence += currentOutput.divergence
+            overallRuntime += currentOutput.measuredRuntime
+
+            # WP3 Stichpunkt vier.
+            if workPackage == WORK_PACKAGE_3_4 and currentOutput.classifiedAsRMap:
+                break
+
 
     # Return the benchmark results in a nice format
     print("\n\n------------WP{}Benchmark------------------".format(workPackage))
@@ -285,13 +305,16 @@ def testFileLoad():
         print(file)
 
 def wp2benchmark():
-    benchmark(workPackage=2)
+    benchmark(workPackage=WORK_PACKAGE_2)
 
-def wp3benchmark():
+def wp31benchmark():
+    benchmark(workPackage=WORK_PACKAGE_3, forbiddenLeaves=[0,1,2])
 
-    # Determine which Leaves are forbidden to sort out in the recognition algorithm
-    benchmark(workPackage=3, skipLeaves=True, forbiddenLeaves=[0,1,2,3])
+def wp32benchmark():
+    benchmark(workPackage=WORK_PACKAGE_3, forbiddenLeaves=[0,1,2,3])
 
-    # TODO: Last point of WP3
-    # TODO: Do we have to split the implementation for 3/4 vertices? Or will we first try it without 4 vertices and afterwards without 3?
-  
+def wp341benchmark():
+    benchmark(workPackage=WORK_PACKAGE_3_4, forbiddenLeaves=3)
+
+def wp342benchmark():
+    benchmark(workPackage=WORK_PACKAGE_3_4, forbiddenLeaves=4)
