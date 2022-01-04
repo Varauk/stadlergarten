@@ -5,8 +5,7 @@ from erdbeermet.recognition import recognize
 # Python packages
 from typing import Final
 from timeit import default_timer as timer
-from logging import debug
-import logging
+from logging import info
 import glob
 import itertools
 import random
@@ -24,13 +23,12 @@ WORK_PACKAGE_3_4: Final = 34
 
 # TODO: Last point of WP1 is left.
 # TODO: Parallelisierung
-# TODO: Formatierung vereinheitlichen
 # TODO: Don't TelL StaDlEr!!11
-# TODO: Output überarbeiten
+# TODO: Output blanks implementieren
 # TODO: Wenn er Dreier-Kombos testet, sind die erkannten Ergebnisse immer mit
 # vier Vertices unterwegs. Wann ist dieser Fall
 # dann richtig bzw gilt Leaves matched?
-# Halbes TODO: Generation in pipeline überarbeiten 
+# Halbes TODO: Generation in pipeline überarbeiten
 # (size, clocklike und circular)
 
 
@@ -55,7 +53,7 @@ def pipeline(size: int = 10,
         # generate scenario
         scenario = simulate(size, circular=circular, clocklike=clocklike)
         simulationMatrix = scenario.D
-        debug(scenario.D)
+        info(scenario.D)
 
     else:
         # use supplied matrix
@@ -76,7 +74,7 @@ def pipeline(size: int = 10,
         output.measuredRuntime = endTime - startTime
 
     # print single outputs if debug is enabled
-    debug(output)
+    info(output)
 
     return output
 
@@ -104,21 +102,21 @@ def recognizeWrapper(D,
     if firstLeaves is not None:
         # build a set which contains all childs
         possible_node_set = []
-        
-        for current_node in recognition_tree.postorder():    
+
+        for current_node in recognition_tree.postorder():
             if current_node.n == 4 and current_node.valid_ways == 1:
                 possible_node_set.append(current_node)
 
-        debug(f'{possible_node_set=}')
+        info(f'{possible_node_set=}')
         # Choose random one of the nodes as stated in WP2
         choosen_node = random.choice(possible_node_set)
-        debug(f'Choosen Node: {choosen_node.V}')
+        info(f'Choosen Node: {choosen_node.V}')
         # Check current list of chosen_node against passLeafes-list
         # TODO current_node.V hat immer Länge 4,
         # aber firstLeaves kann Länge 3-4 haben
         if sorted(choosen_node.V) == sorted(firstLeaves):
             leafes_match = True
-            debug(f'Leafes matched!')
+            info('Leafes matched!')
 
     # Check: Do the R-Steps from the reconstructed tree
     # diverge from the original R-Steps?
@@ -131,12 +129,14 @@ def recognizeWrapper(D,
             # add all r_steps where the result was an r-map at the end
             if current_node.valid_ways > 0 and current_node.R_step is not None:
 
-                # special case if we are at the end and have one of the possible candidates, we only want that one which was chosen randomly before at the leaf matching. 
+                # special case if we are at the end and have one of the
+                # possible candidates, we only want that one which was chosen
+                # randomly before at the leaf matching.
                 # So we will skip all others.
                 if current_node.n == 4 and current_node != choosen_node:
-                    debug(f'Skipped this entry: {str(current_node.V)}')
+                    info(f'Skipped this entry: {str(current_node.V)}')
                     continue
-                
+
                 # Construct a new R-step which is comparable
                 # to those in the history
                 temp = (current_node.R_step[0],
@@ -145,46 +145,46 @@ def recognizeWrapper(D,
                         round(current_node.R_step[3], 6))
                 reconstructed_r_steps.add(temp)
 
-        debug(f'R-Steps: {str(reconstructed_r_steps)}')
+        info(f'R-Steps: {str(reconstructed_r_steps)}')
         # Now we need to check the reconstructed r-steps against
         # the original ones. Extract r-steps from history
         history_r_steps = set()
         offset_counter = 0
         for entry in history:
-            debug(f'Entry: {str(entry)}')
+            info(f'Entry: {str(entry)}')
 
             # Skip the first 3 entries since they
             # aren't in the reconstructed set.
             if offset_counter <= 2:
                 offset_counter += 1
-                debug('Skipped')
+                info('Skipped')
                 continue
 
             # We have to modifiy the values and sort x,y in the
             # same order (ascending) as the reconstructed r_steps are.
             # The last entry of alpha does not match on the last
             # few digits sometimes. So I restricted it to 6 digits.
-            debug('Real entry')
+            info('Real entry')
             if entry[0] > entry[1]:
                 newTuple = (entry[1], entry[0], entry[2], round(1-entry[3], 6))
             else:
                 newTuple = (entry[0], entry[1], entry[2], round(entry[3], 6))
 
-            debug(f'New Tuple is: {newTuple}')
+            info(f'New Tuple is: {newTuple}')
 
             history_r_steps.add(newTuple)
 
-        debug(f'History-R-Steps: {str(history_r_steps)}')
+        info(f'History-R-Steps: {str(history_r_steps)}')
         # Now compare them. We use intersection to find elements
         # that were contained in both.
         result = history_r_steps.intersection(reconstructed_r_steps)
-        debug(f'Result intersection: {str(result)}')
+        info(f'Result intersection: {str(result)}')
 
         # return the result as one minus the proportion of successful
         # reconstructed steps from all original steps. Care for cases with n=4.
         if len(history_r_steps) != 0:
             current_divergence = 1 - (len(result) / len(history_r_steps))
-            debug(f'Current divergence: {str(current_divergence)}')
+            info(f'Current divergence: {str(current_divergence)}')
 
     # Check: Was the simulated Matrix an R-Map?
     was_classified_as_R_Map = False
@@ -196,7 +196,7 @@ def recognizeWrapper(D,
     else:
         pass
 
-    debug(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
+    info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
 
     # Set corresponding values in the current output-Object
     output = Output()
@@ -280,16 +280,16 @@ def benchmark(test_set: Path,
             else:
                 combinationsOfLeafes = [None]
 
-            debug(combinationsOfLeafes)
+            info(combinationsOfLeafes)
             # Rotate until you find a valid solution
             for combination in combinationsOfLeafes:
-                debug(f'Checked combination: {str(combination)}')
+                info(f'Checked combination: {str(combination)}')
                 if combination is not None:
                     # The first leafes must correspond to the ones which
                     # are forbidden and therefore can't be deleted
                     # by the recognition algorithm.
                     firstLeaves = combination
-                debug(f'First leafes are: {str(firstLeaves)}')
+                info(f'First leafes are: {str(firstLeaves)}')
                 # Create our Object where the evaluation will be captured.
                 currentOutput = Output()
                 # use the pipeline on it
