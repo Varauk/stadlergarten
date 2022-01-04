@@ -15,11 +15,11 @@
     "erdbeermetUpstream": {
       "flake": false,
       "locked": {
-        "lastModified": 1639070302,
-        "narHash": "sha256-XpuLbGMZAHsPbAhNxJ9+3xL89gEjIEsi4R0IoAeOsbA=",
+        "lastModified": 1641221620,
+        "narHash": "sha256-1gjsdXqrONzBPzbvamMV5UBL3lWiMqBz2f5ANQzGwB4=",
         "owner": "david-schaller",
         "repo": "Erdbeermet",
-        "rev": "fdd268774bdad77adf67483a747739b97c9dd8b7",
+        "rev": "34917a76c51951b50dfa447a46bd940883939a67",
         "type": "github"
       },
       "original": {
