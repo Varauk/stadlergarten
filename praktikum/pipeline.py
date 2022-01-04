@@ -8,6 +8,7 @@ from timeit import default_timer as timer
 from logging import debug
 import glob
 import itertools
+import random
 from pathlib import Path
 
 # Own classes
@@ -23,7 +24,6 @@ WORK_PACKAGE_3_4: Final = 34
 # TODO: Formatierung vereinheitlichen
 # TODO: Don't TelL StaDlEr!!11
 # TODO: Output überarbeiten
-# TODO: The recognition_tree will now hold multiple candidates - choose random one of the valid ones.
 # TODO: Wenn er Dreier-Kombos testet, sind die erkannten Ergebnisse immer mit
 # vier Vertices unterwegs. Wann ist dieser Fall
 # dann richtig bzw gilt Leaves matched?
@@ -99,15 +99,23 @@ def recognizeWrapper(D,
     # Check: Match reconstructed leafes and orginal leafes?
     leafes_match = False
     if firstLeaves is not None:
-        for current_node in recognition_tree.postorder():
+        # build a set which contains all childs
+        possible_node_set = []
+        
+        for current_node in recognition_tree.postorder():    
             if current_node.n == 4 and current_node.valid_ways == 1:
+                possible_node_set.append(current_node)
 
-                # Check current list of vertices against passLeafes-list
-                # TODO current_node.V hat immer Länge 4,
-                # aber firstLeaves kann Länge 3-4 haben
-                if sorted(current_node.V) == sorted(firstLeaves):
-                    leafes_match = True
-                    print('Leafes matched!')
+        debug(f'{possible_node_set=}')
+        # Choose random one of the nodes as stated in WP2
+        choosen_node = random.choice(possible_node_set)
+        debug(f'Choosen Node: {choosen_node.V}')
+        # Check current list of chosen_node against passLeafes-list
+        # TODO current_node.V hat immer Länge 4,
+        # aber firstLeaves kann Länge 3-4 haben
+        if sorted(choosen_node.V) == sorted(firstLeaves):
+            leafes_match = True
+            debug(f'Leafes matched!')
 
     # Check: Do the R-Steps from the reconstructed tree
     # diverge from the original R-Steps?
@@ -120,6 +128,12 @@ def recognizeWrapper(D,
             # add all r_steps where the result was an r-map at the end
             if current_node.valid_ways > 0 and current_node.R_step is not None:
 
+                # special case if we are at the end and have one of the possible candidates, we only want that one which was chosen randomly before at the leaf matching. 
+                # So we will skip all others.
+                if current_node.n == 4 and current_node != choosen_node:
+                    debug(f'Skipped this entry: {str(current_node.V)}')
+                    continue
+                
                 # Construct a new R-step which is comparable
                 # to those in the history
                 temp = (current_node.R_step[0],
@@ -226,7 +240,7 @@ def benchmark(test_set: Path,
 
     # For every file, use the pipeline ~ loop it baby, loop it!
     for currentPath in filePaths:
-        print(f'Current File is: {currentPath}')
+        debug(f'Current File is: {currentPath}')
 
         # extract clockwise and circular info from filename
         fileName = currentPath.name
