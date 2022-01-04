@@ -30,10 +30,8 @@ def main():
     args = parser.parse_args()
 
     # Enable debugging if requested
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.WARN)
+    level = logging.INFO if args.debug else logging.WARN
+    logging.basicConfig(level=level)
 
     # Select test set directory
     test_set = TEST_SET_DIR/args.test_set
