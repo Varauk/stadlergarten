@@ -30,6 +30,7 @@
               numpy
               scipy
               matplotlib
+              tqdm
             ];
 
             doCheck = false;

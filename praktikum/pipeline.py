@@ -6,10 +6,13 @@ from erdbeermet.recognition import recognize
 from typing import Final
 from timeit import default_timer as timer
 from logging import debug
+import logging
 import glob
 import itertools
 import random
 from pathlib import Path
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 # Own classes
 from output import Output
@@ -224,8 +227,6 @@ def benchmark(test_set: Path,
     pipeline on it. Generate a new Output-Object for every of them
     and sum up Runtimes etc.
     '''
-    # TODO: Ladebalken yikes
-
     # init values
     overallRuntime = 0.0
     numberOfRMaps = 0.0
@@ -238,81 +239,84 @@ def benchmark(test_set: Path,
     # Get overall number of used scenarios
     numberOfScenarios = len(filePaths)
 
-    # For every file, use the pipeline ~ loop it baby, loop it!
-    for currentPath in filePaths:
-        debug(f'Current File is: {currentPath}')
+    # Prevent logging from messing up our progress bar!
+    with logging_redirect_tqdm():
+        # For every file, use the pipeline ~ loop it baby, loop it!
+        for currentPath in tqdm(filePaths):
+            tqdm.write(f'Current File is: {currentPath}')
 
-        # extract clockwise and circular info from filename
-        fileName = currentPath.name
+            # extract clockwise and circular info from filename
+            fileName = currentPath.name
 
-        circular = False
-        clocklike = False
+            circular = False
+            clocklike = False
 
-        if (fileName.find('i') != -1):
-            circular = True
+            if (fileName.find('i') != -1):
+                circular = True
 
-        if (fileName.find('o') != -1):
-            clocklike = True
+            if (fileName.find('o') != -1):
+                clocklike = True
 
-        # Load the corresponding matrix with a new Output Object
-        scenario = load(filename=currentPath)
+            # Load the corresponding matrix with a new Output Object
+            scenario = load(filename=currentPath)
 
-        # Write here the Wrapper which shall guess the core leaves and tries
-        # to avoid them in the recognition. Run this until you find
-        # a valid R-Map.
-        # scenario.N has the number of items which were generated.
-        # So we need all subsets of N items with 3 respectively 4 leaves.
+            # Write here the Wrapper which shall guess the core leaves and
+            # tries to avoid them in the recognition. Run this until you find
+            # a valid R-Map.
+            # scenario.N has the number of items which were generated.
+            # So we need all subsets of N items with 3 respectively 4 leaves.
 
-        # ForbiddenLeaves is an int at the end of WP3.4 and a list at WP3.3.
-        if type(forbiddenLeaves) is list:
-            combinationsOfLeafes = [forbiddenLeaves]
-        elif type(forbiddenLeaves) is int:
-            possibleLeaves = range(scenario.N)
-            leaveCombinations = itertools.combinations(possibleLeaves,
-                                                       forbiddenLeaves)
-            # We reverse the list because the solution [0,1,2,3]
-            # is always trivial and the first.
-            # Other solutions are more interesting.
-            combinationsOfLeafes = reversed(list(leaveCombinations))
-        else:
-            combinationsOfLeafes = [None]
+            # ForbiddenLeaves is an int at the end of WP3.4 and a list at WP3.3
+            if type(forbiddenLeaves) is list:
+                combinationsOfLeafes = [forbiddenLeaves]
+            elif type(forbiddenLeaves) is int:
+                possibleLeaves = range(scenario.N)
+                leaveCombinations = itertools.combinations(possibleLeaves,
+                                                           forbiddenLeaves)
+                # We reverse the list because the solution [0,1,2,3]
+                # is always trivial and the first.
+                # Other solutions are more interesting.
+                combinationsOfLeafes = reversed(list(leaveCombinations))
+            else:
+                combinationsOfLeafes = [None]
 
-        debug(combinationsOfLeafes)
-        # Rotate until you find a valid solution
-        for combination in combinationsOfLeafes:
-            debug(f'Checked combination: {str(combination)}')
-            if combination is not None:
-                # The first leafes must correspond to the ones which
-                # are forbidden and therefore can't be deleted
-                # by the recognition algorithm.
-                firstLeaves = combination
-            debug(f'First leafes are: {str(firstLeaves)}')
-            # Create our Object where the evaluation will be captured.
-            currentOutput = Output()
-            # use the pipeline on it
-            currentOutput = pipeline(size=scenario.N,
-                                     clocklike=clocklike,
-                                     circular=circular,
-                                     predefinedSimulationMatrix=scenario.D,
-                                     measurePerformance=True,
-                                     measureDivergence=True,
-                                     firstLeaves=firstLeaves,
-                                     first_candidate_only=True,
-                                     history=scenario.history,
-                                     forbiddenLeaves=combination)
+            debug(combinationsOfLeafes)
+            # Rotate until you find a valid solution
+            for combination in combinationsOfLeafes:
+                debug(f'Checked combination: {str(combination)}')
+                if combination is not None:
+                    # The first leafes must correspond to the ones which
+                    # are forbidden and therefore can't be deleted
+                    # by the recognition algorithm.
+                    firstLeaves = combination
+                debug(f'First leafes are: {str(firstLeaves)}')
+                # Create our Object where the evaluation will be captured.
+                currentOutput = Output()
+                # use the pipeline on it
+                currentOutput = pipeline(size=scenario.N,
+                                         clocklike=clocklike,
+                                         circular=circular,
+                                         predefinedSimulationMatrix=scenario.D,
+                                         measurePerformance=True,
+                                         measureDivergence=True,
+                                         firstLeaves=firstLeaves,
+                                         first_candidate_only=True,
+                                         history=scenario.history,
+                                         forbiddenLeaves=combination)
 
-            # Use the values of the current Output Object
-            # to modify overall values of benchmark
-            if (currentOutput.classifiedAsRMap):
-                numberOfRMaps += 1
-            if (currentOutput.classifiedMatchingFourLeaves):
-                numberOfMatchingFourLeafs += 1
-            sumOfDivergence += currentOutput.divergence
-            overallRuntime += currentOutput.measuredRuntime
+                # Use the values of the current Output Object
+                # to modify overall values of benchmark
+                if (currentOutput.classifiedAsRMap):
+                    numberOfRMaps += 1
+                if (currentOutput.classifiedMatchingFourLeaves):
+                    numberOfMatchingFourLeafs += 1
+                sumOfDivergence += currentOutput.divergence
+                overallRuntime += currentOutput.measuredRuntime
 
-            # WP3 Stichpunkt vier.
-            if workPackage == WORK_PACKAGE_3_4 and currentOutput.classifiedAsRMap:
-                break
+                # WP3 Stichpunkt vier.
+                if (workPackage == WORK_PACKAGE_3_4
+                   and currentOutput.classifiedAsRMap):
+                    break
 
     # Return the benchmark results in a nice format
     print(f'\n\n------------WP{workPackage}Benchmark------------------')
