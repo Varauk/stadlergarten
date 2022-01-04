@@ -250,7 +250,7 @@ def _find_candidates(D, V, print_info, B=None):
 
         else:
             # choose an arbitrary alpha (e.g. 0.5) and witness u (?)
-            alpha, u_witness = 0.5, None
+            ref_alpha, u_witness = 0.5, None
             for u in V:
                 if u not in (x, y, z):
                     u_witness = u
@@ -443,7 +443,7 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None):
                 stack.append(child)
 
                 # for n = 5 always check all candidates
-                if first_candidate_only and n > 4:
+                if first_candidate_only and n > 5:
                     break
 
             if not candidates or not found_valid:
