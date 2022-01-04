@@ -11,23 +11,29 @@ class Output:
     def __init__(self):
         pass
 
-    def print(self):
-        print("Statistics for this runtrough:\n")
+    def __str__(self):
+        string = 'Statistics for this runtrough:\n'
 
         if self.classifiedAsRMap:
-            print("* Was correctly recognized as an R-Map.\n")
+            string += '* Was correctly recognized as an R-Map.\n'
         if self.classifiedMatchingFourLeaves:
-            print("* The final 4-leaf-map matches the original 4-leaf-map!\n")
+            string += '* The final 4-leaf-map match the original 4-leaf-map!\n'
 
-        print("* Count of diverging steps was {}.\n".format(self.divergence))
+        string = f'* Count of diverging steps was {self.divergence}.\n'
 
         if self.measuredRuntime != 0.0:
-            print("* The task took {} seconds.\n".format(self.measuredRuntime))
+            string += f'* The task took {self.measuredRuntime} seconds.\n'
 
-        # Plotters
+        # TODO: Plotters
         if self.plotMatrix:
             pass
         if self.plotSteps:
             pass
         if self.plotMatrix:
             pass
+
+        return string
+
+    @DeprecationWarning
+    def print(self):
+        print(self)

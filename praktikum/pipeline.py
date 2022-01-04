@@ -5,9 +5,10 @@ from erdbeermet.recognition import recognize
 # Python packages
 from typing import Final
 from timeit import default_timer as timer
+from logging import debug
 import glob
-import numpy as np
 import itertools
+from pathlib import Path
 
 # Own classes
 from output import Output
@@ -23,21 +24,24 @@ WORK_PACKAGE_3_4: Final = 34
 # TODO: Don't TelL StaDlEr!!11
 # TODO: Output überarbeiten
 
-# TODO: Wenn er Dreier-Kombos testet, sind die erkannten Ergebnisse immer mit vier Vertices unterwegs. Wann ist dieser Fall dann richtig bzw gilt Leaves matched? 
-# Halbes TODO: Generation in pipeline überarbeiten (size, clocklike und circular)
+# TODO: Wenn er Dreier-Kombos testet, sind die erkannten Ergebnisse immer mit
+# vier Vertices unterwegs. Wann ist dieser Fall
+# dann richtig bzw gilt Leaves matched?
+# Halbes TODO: Generation in pipeline überarbeiten
+# (size, clocklike und circular)
 
-def pipeline(size=10,
-             circular=False,
-             clocklike=False,
+
+def pipeline(size: int = 10,
+             circular: bool = False,
+             clocklike: bool = False,
              predefinedSimulationMatrix=None,
-             measurePerformance=False,
-             measureDivergence=False,
+             measurePerformance: bool = False,
+             measureDivergence: bool = False,
              firstLeaves=None,
              history=None,
-             output=None,
-             first_candidate_only=True,
+             first_candidate_only: bool = True,
              forbiddenLeaves=None,
-             print_info=False):
+             print_info: bool = False) -> Output:
 
     if measurePerformance:
         startTime = timer()
@@ -48,30 +52,30 @@ def pipeline(size=10,
         # generate scenario
         scenario = simulate(size, circular=circular, clocklike=clocklike)
         simulationMatrix = scenario.D
-        # print(scenario.D)
+        debug(scenario.D)
 
     else:
         # use supplied matrix
         simulationMatrix = predefinedSimulationMatrix
-        
-    recognizeWrapper(
+
+    output = recognizeWrapper(
             simulationMatrix,
             first_candidate_only=first_candidate_only,
             print_info=print_info,
             measureDivergence=measureDivergence,
             history=history,
             firstLeaves=firstLeaves,
-            forbiddenLeaves=forbiddenLeaves,
-            output=output)        
+            forbiddenLeaves=forbiddenLeaves)
 
     if measurePerformance:
         # measure time
         endTime = timer()
         output.measuredRuntime = endTime - startTime
 
+    # print single outputs if debug is enabled
+    debug(output)
 
-    # print single outputs if needed
-    # output.print()
+    return output
 
 
 def recognizeWrapper(D,
@@ -81,102 +85,109 @@ def recognizeWrapper(D,
                      history=None,
                      firstLeaves=None,
                      skipLeaves=False,
-                     forbiddenLeaves=None,
-                     output=None):
-    
+                     forbiddenLeaves=None) -> Output:
+
     # Shall recognize skip forbidden leafes?
     if forbiddenLeaves is not None:
-        recognition_tree = recognize(D, first_candidate_only, print_info, forbiddenLeaves)
-    else: 
+        recognition_tree = recognize(D, first_candidate_only, print_info,
+                                     forbiddenLeaves)
+    else:
         recognition_tree = recognize(D, first_candidate_only, print_info)
-    
+
     # recognition_tree.visualize()
-    
-    # Check: Match recosntructed leafes and orginal leafes?
+
+    # Check: Match reconstructed leafes and orginal leafes?
     leafes_match = False
     if firstLeaves is not None:
         for current_node in recognition_tree.postorder():
             if current_node.n == 4 and current_node.valid_ways == 1:
-                
+
                 # Check current list of vertices against passLeafes-list
-                if sorted(current_node.V) == sorted(firstLeaves): # TODO current_node.V hat immer Länge 4, aber firstLeaves kann Länge 3-4 haben
+                # TODO current_node.V hat immer Länge 4,
+                # aber firstLeaves kann Länge 3-4 haben
+                if sorted(current_node.V) == sorted(firstLeaves):
                     leafes_match = True
-                    print("Leafes matched!")
+                    print('Leafes matched!')
 
-
-    # Check: Do the R-Steps from the reconstructed tree diverge from the original R-Steps?
+    # Check: Do the R-Steps from the reconstructed tree
+    # diverge from the original R-Steps?
     current_divergence = 0.0
-    if measureDivergence: 
+    if measureDivergence:
         reconstructed_r_steps = set()
-        
-        for current_node in recognition_tree.preorder():    
+
+        for current_node in recognition_tree.preorder():
 
             # add all r_steps where the result was an r-map at the end
             if current_node.valid_ways > 0 and current_node.R_step is not None:
-                
-                # Construct a new R-step which is comparable to those in the history
-                temp = (current_node.R_step[0], current_node.R_step[1], current_node.R_step[2], float("{:.6f}".format(current_node.R_step[3])))
-                # print("modified r-step:")
-                # print(newTople)
+
+                # Construct a new R-step which is comparable
+                # to those in the history
+                temp = (current_node.R_step[0],
+                        current_node.R_step[1],
+                        current_node.R_step[2],
+                        round(current_node.R_step[3], 6))
                 reconstructed_r_steps.add(temp)
 
-        # print("R-Steps: " + str(reconstructed_r_steps))
-        # Now we need to check the reconstructed r-steps against the original ones.
-        # Extract r-steps from history
-
+        debug(f'R-Steps: {str(reconstructed_r_steps)}')
+        # Now we need to check the reconstructed r-steps against
+        # the original ones. Extract r-steps from history
         history_r_steps = set()
         offset_counter = 0
         for entry in history:
-            # print("Entry: " + str(entry))
+            debug(f'Entry: {str(entry)}')
 
-            # Skip the first 3 entries since they aren't in the reconstructed set.
+            # Skip the first 3 entries since they
+            # aren't in the reconstructed set.
             if offset_counter <= 2:
-               offset_counter += 1 
-               # print("Skipped")
-               continue
+                offset_counter += 1
+                debug('Skipped')
+                continue
 
-            # We have to modifiy the values and sort x,y in the same order (ascending) as the reconstructed r_steps are. 
-            # The last entry of alpha does not match on the last few digits sometimes. So I restricted it to 6 digits.
-            # print("Real entry")
-            # print(float("{:.6f}".format(entry[3])))
+            # We have to modifiy the values and sort x,y in the
+            # same order (ascending) as the reconstructed r_steps are.
+            # The last entry of alpha does not match on the last
+            # few digits sometimes. So I restricted it to 6 digits.
+            debug('Real entry')
             if entry[0] > entry[1]:
-                newTuple=(entry[1], entry[0], entry[2], float("{:.6f}".format(1-entry[3])))
-            else: 
-                newTuple=(entry[0], entry[1], entry[2], float("{:.6f}".format(entry[3])))
-            
-            # print("New Tuple is: " + str(newTuple))
-            
+                newTuple = (entry[1], entry[0], entry[2], round(1-entry[3], 6))
+            else:
+                newTuple = (entry[0], entry[1], entry[2], round(entry[3], 6))
+
+            debug(f'New Tuple is: {newTuple}')
+
             history_r_steps.add(newTuple)
-            
 
-        # print("History-R-Steps: " + str(history_r_steps))
-        # Now compare them. We use intersection to find elements that were contained in both.
+        debug(f'History-R-Steps: {str(history_r_steps)}')
+        # Now compare them. We use intersection to find elements
+        # that were contained in both.
         result = history_r_steps.intersection(reconstructed_r_steps)
-        # print("Result intersection: " + str(result))
- 
-        # return the result as one minus the proportion of successful reconstructed steps from all original steps. Care for cases with n=4.
-        if len(history_r_steps) != 0 :
-            current_divergence =  1 - (len(result) / len(history_r_steps))
-            # print("Current divergence: " + str(current_divergence))
+        debug(f'Result intersection: {str(result)}')
 
+        # return the result as one minus the proportion of successful
+        # reconstructed steps from all original steps. Care for cases with n=4.
+        if len(history_r_steps) != 0:
+            current_divergence = 1 - (len(result) / len(history_r_steps))
+            debug(f'Current divergence: {str(current_divergence)}')
 
-    # Check: Was the simulated Matrix a R-Map?
+    # Check: Was the simulated Matrix an R-Map?
     was_classified_as_R_Map = False
-    if recognition_tree.root.valid_ways > 0 :
+    if recognition_tree.root.valid_ways > 0:
         was_classified_as_R_Map = True
-    # If not, Reconstruction failed and we should TODO: output "plot distance matrices, recognition steps and final box plots of scenarios"
-    else: 
+    # If not, Reconstruction failed and we should
+    # TODO: output 'plot distance matrices, recognition steps
+    #       and final box plots of scenarios'
+    else:
         pass
-    
-    # print("Valid ways of the root-Node: {}".format(recognition_tree.root.valid_ways))
 
+    debug(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
 
     # Set corresponding values in the current output-Object
+    output = Output()
     output.divergence = current_divergence
     output.classifiedMatchingFourLeaves = leafes_match
     output.classifiedAsRMap = was_classified_as_R_Map
 
-    return
+    return output
 
 
 def testOutputClass():
@@ -190,7 +201,10 @@ def testOutputClass():
     return a
 
 
-def benchmark(workPackage=2, firstLeaves=[0,1,2,3], forbiddenLeaves=None):
+def benchmark(test_set: Path,
+              workPackage=2,
+              firstLeaves=[0, 1, 2, 3],
+              forbiddenLeaves=None):
     '''
     for every matrix which was generated: Load it, and use the
     pipeline on it. Generate a new Output-Object for every of them
@@ -205,74 +219,76 @@ def benchmark(workPackage=2, firstLeaves=[0,1,2,3], forbiddenLeaves=None):
     sumOfDivergence = 0.0
 
     # Load the files
-    # path = '../test-matrices/hists/*.txt'
-    path = '../test-matrices/subtest/*.txt'
-    # path = '../test-matrices/singletest/*.txt'
-    filePaths = glob.glob(path)
-
+    filePaths = list(test_set.glob('*'))
 
     # Get overall number of used scenarios
     numberOfScenarios = len(filePaths)
-    # print(len(filePaths))
 
     # For every file, use the pipeline ~ loop it baby, loop it!
     for currentPath in filePaths:
-        print("Current File is: " + str(currentPath))
+        print(f'Current File is: {currentPath}')
 
         # extract clockwise and circular info from filename
-        fileName = currentPath[(len(currentPath)-12):len(currentPath)]
-        # print(fileName)
+        fileName = currentPath.name
 
         circular = False
         clocklike = False
 
-        if (fileName.find("i") != -1):
+        if (fileName.find('i') != -1):
             circular = True
 
-        if (fileName.find("o") != -1):
+        if (fileName.find('o') != -1):
             clocklike = True
-
 
         # Load the corresponding matrix with a new Output Object
         scenario = load(filename=currentPath)
 
-        # Write here the Wrapper which shall guess the core leaves and tries to avoid them in the recognition. Run this until you find a valid R-Map.
-        # scenario.N has the number of items which were generated. So we need all subsets of N items with 3 respectively 4 leaves.
+        # Write here the Wrapper which shall guess the core leaves and tries
+        # to avoid them in the recognition. Run this until you find
+        # a valid R-Map.
+        # scenario.N has the number of items which were generated.
+        # So we need all subsets of N items with 3 respectively 4 leaves.
 
-
-        # ForbiddenLeaves is an int at the end of WP3.4 and a list at WP3.3.  
+        # ForbiddenLeaves is an int at the end of WP3.4 and a list at WP3.3.
         if type(forbiddenLeaves) is list:
             combinationsOfLeafes = [forbiddenLeaves]
         elif type(forbiddenLeaves) is int:
-            # We reverse the list because the solution [0,1,2,3] is always trivial and the first. More interesting are other solutions.
-            combinationsOfLeafes = reversed(list(itertools.combinations([x for x in range(scenario.N)], forbiddenLeaves)))
+            possibleLeaves = range(scenario.N)
+            leaveCombinations = itertools.combinations(possibleLeaves,
+                                                       forbiddenLeaves)
+            # We reverse the list because the solution [0,1,2,3]
+            # is always trivial and the first.
+            # Other solutions are more interesting.
+            combinationsOfLeafes = reversed(list(leaveCombinations))
         else:
-            combinationsOfLeafes=[None]
+            combinationsOfLeafes = [None]
 
-        # print(combinationsOfFourLeafes)
+        debug(combinationsOfLeafes)
         # Rotate until you find a valid solution
         for combination in combinationsOfLeafes:
-            # print("Checked combination: " + str(combination))
+            debug(f'Checked combination: {str(combination)}')
             if combination is not None:
-                # The first leafes must correspond to the ones which are forbidden and therefore can't be deleted by the recognition algorithm.
+                # The first leafes must correspond to the ones which
+                # are forbidden and therefore can't be deleted
+                # by the recognition algorithm.
                 firstLeaves = combination
-            # print("First leafes are: " + str(firstLeaves))
-            # Create our Object where the evaluation will be captured.  
+            debug(f'First leafes are: {str(firstLeaves)}')
+            # Create our Object where the evaluation will be captured.
             currentOutput = Output()
             # use the pipeline on it
-            pipeline(size=scenario.N,
-                    clocklike=clocklike,
-                    circular=circular,
-                    predefinedSimulationMatrix=scenario.D,
-                    measurePerformance=True,
-                    measureDivergence=True,
-                    firstLeaves=firstLeaves,
-                    first_candidate_only=True,
-                    history=scenario.history,
-                    forbiddenLeaves=combination,
-                    output=currentOutput)
+            currentOutput = pipeline(size=scenario.N,
+                                     clocklike=clocklike,
+                                     circular=circular,
+                                     predefinedSimulationMatrix=scenario.D,
+                                     measurePerformance=True,
+                                     measureDivergence=True,
+                                     firstLeaves=firstLeaves,
+                                     first_candidate_only=True,
+                                     history=scenario.history,
+                                     forbiddenLeaves=combination)
 
-        # Use the values of the current Output Object to modify overall values of benchmark
+            # Use the values of the current Output Object
+            # to modify overall values of benchmark
             if (currentOutput.classifiedAsRMap):
                 numberOfRMaps += 1
             if (currentOutput.classifiedMatchingFourLeaves):
@@ -284,18 +300,17 @@ def benchmark(workPackage=2, firstLeaves=[0,1,2,3], forbiddenLeaves=None):
             if workPackage == WORK_PACKAGE_3_4 and currentOutput.classifiedAsRMap:
                 break
 
-
     # Return the benchmark results in a nice format
-    print("\n\n------------WP{}Benchmark------------------".format(workPackage))
-    print("Number of simulated matrices: {}".format(numberOfScenarios))
-    print("Overall runtime measured: {} seconds needed.".format(overallRuntime))
-    print("Proportion of classified R-Maps is: {}"
-          .format(numberOfRMaps/numberOfScenarios))
-    print("Proporion of 4-leaf-maps: {}"
-          .format(numberOfMatchingFourLeafs/numberOfScenarios))
-    print("Average divergence is: {}"
-          .format(sumOfDivergence / numberOfScenarios))
-    print(" End of the Benchmark ")
+    print(f'\n\n------------WP{workPackage}Benchmark------------------')
+    print(f'Number of simulated matrices: {numberOfScenarios}')
+    print(f'Overall runtime measured: {overallRuntime} seconds needed.')
+    proportion = numberOfRMaps / numberOfScenarios
+    print(f'Proportion of classified R-Maps is: {proportion}')
+    proportion = numberOfMatchingFourLeafs/numberOfScenarios
+    print(f'Proporion of 4-leaf-maps: {proportion}')
+    divergence = sumOfDivergence / numberOfScenarios
+    print(f'Average divergence is: {divergence}')
+    print(' End of the Benchmark ')
 
 
 def testFileLoad():
@@ -304,17 +319,24 @@ def testFileLoad():
     for file in files:
         print(file)
 
-def wp2benchmark():
-    benchmark(workPackage=WORK_PACKAGE_2)
 
-def wp31benchmark():
-    benchmark(workPackage=WORK_PACKAGE_3, forbiddenLeaves=[0,1,2])
+def wp2benchmark(test_set: Path):
+    benchmark(test_set, workPackage=WORK_PACKAGE_2)
 
-def wp32benchmark():
-    benchmark(workPackage=WORK_PACKAGE_3, forbiddenLeaves=[0,1,2,3])
 
-def wp341benchmark():
-    benchmark(workPackage=WORK_PACKAGE_3_4, forbiddenLeaves=3)
+def wp31benchmark(test_set: Path):
+    benchmark(test_set, workPackage=WORK_PACKAGE_3, forbiddenLeaves=[0, 1, 2])
 
-def wp342benchmark():
-    benchmark(workPackage=WORK_PACKAGE_3_4, forbiddenLeaves=4)
+
+def wp32benchmark(test_set: Path):
+    benchmark(test_set,
+              workPackage=WORK_PACKAGE_3,
+              forbiddenLeaves=[0, 1, 2, 3])
+
+
+def wp341benchmark(test_set: Path):
+    benchmark(test_set, workPackage=WORK_PACKAGE_3_4, forbiddenLeaves=3)
+
+
+def wp342benchmark(test_set: Path):
+    benchmark(test_set, workPackage=WORK_PACKAGE_3_4, forbiddenLeaves=4)
