@@ -23,11 +23,11 @@ WORK_PACKAGE_3_4: Final = 34
 # TODO: Formatierung vereinheitlichen
 # TODO: Don't TelL StaDlEr!!11
 # TODO: Output überarbeiten
-
+# TODO: The recognition_tree will now hold multiple candidates - choose random one of the valid ones.
 # TODO: Wenn er Dreier-Kombos testet, sind die erkannten Ergebnisse immer mit
 # vier Vertices unterwegs. Wann ist dieser Fall
 # dann richtig bzw gilt Leaves matched?
-# Halbes TODO: Generation in pipeline überarbeiten
+# Halbes TODO: Generation in pipeline überarbeiten 
 # (size, clocklike und circular)
 
 
