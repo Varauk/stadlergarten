@@ -8,11 +8,11 @@ from glob import glob
 
 from erdbeermet.simulation import simulate
 
-PATH = Path('./hists')
+PATH = Path('./omegaset')
 PROP_CIRCULAR = 0.25
 PROP_CLOCKLIKE = 0.25
 DEFAULT_MIN_MATRIX_SIZE = 5
-DEFAULT_MAX_MATRIX_SIZE = 25
+DEFAULT_MAX_MATRIX_SIZE = 10
 
 
 def generate(count, min_size, max_size):
