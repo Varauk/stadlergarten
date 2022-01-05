@@ -2,7 +2,8 @@
 class Output:
     classifiedAsRMap = False
     classifiedMatchingFourLeaves = False
-    divergence = 0.0
+    divergenceWithoutOrder = 0.0
+    divergenceWithOrder = 0.0
     measuredRuntime = 0.0
     plotMatrix = False
     plotSteps = False
@@ -19,7 +20,11 @@ class Output:
         if self.classifiedMatchingFourLeaves:
             string += '* The final 4-leaf-map match the original 4-leaf-map!\n'
 
-        string = f'* Count of diverging steps was {self.divergence}.\n'
+        string += ('* Proportion of diverging ' +
+                   f'steps with order was {self.divergenceWithOrder :.2%}.\n')
+
+        string += ('* Proportion of diverging steps ' +
+                   f'without order was {self.divergenceWithoutOrder :.2%}.\n')
 
         if self.measuredRuntime != 0.0:
             string += f'* The task took {self.measuredRuntime} seconds.\n'

@@ -6,7 +6,6 @@ from erdbeermet.recognition import recognize
 from typing import Final
 from timeit import default_timer as timer
 from logging import info
-import glob
 import itertools
 import random
 from pathlib import Path
@@ -25,9 +24,6 @@ WORK_PACKAGE_3_4: Final = 34
 # TODO: Parallelisierung
 # TODO: Don't TelL StaDlEr!!11
 # TODO: Output blanks implementieren
-# TODO: Wenn er Dreier-Kombos testet, sind die erkannten Ergebnisse immer mit
-# vier Vertices unterwegs. Wann ist dieser Fall
-# dann richtig bzw gilt Leaves matched?
 # Halbes TODO: Generation in pipeline überarbeiten
 # (size, clocklike und circular)
 
@@ -85,7 +81,6 @@ def recognizeWrapper(D,
                      measureDivergence=False,
                      history=None,
                      firstLeaves=None,
-                     skipLeaves=False,
                      forbiddenLeaves=None) -> Output:
 
     # Shall recognize skip forbidden leafes?
@@ -95,7 +90,7 @@ def recognizeWrapper(D,
     else:
         recognition_tree = recognize(D, first_candidate_only, print_info)
 
-    recognition_tree.visualize()
+    # recognition_tree.visualize()
 
     # Check: Match reconstructed leafes and orginal leafes?
     leafes_match = False
@@ -117,11 +112,12 @@ def recognizeWrapper(D,
 
     # Check: Do the R-Steps from the reconstructed tree
     # diverge from the original R-Steps?
-    current_divergence = 0.0
+    divergence_with_order = 0.0
+    divergence_without_order = 0.0
     if measureDivergence:
-        reconstructed_r_steps = set()
+        reconstructed_r_steps = []
 
-        for current_node in recognition_tree.preorder():
+        for current_node in recognition_tree.postorder():
 
             # add all r_steps where the result was an r-map at the end
             if current_node.valid_ways > 0 and current_node.R_step is not None:
@@ -131,7 +127,8 @@ def recognizeWrapper(D,
                 # randomly before at the leaf matching.
                 # So we will skip all others.
                 if current_node.n == 4 and current_node != choosen_node:
-                    info(f'Skipped this entry: {str(current_node.V)} although it was valid but not chosen.')
+                    info(f'Skipped this entry: {str(current_node.V)} although',
+                         'it was valid but not chosen.')
                     continue
 
                 # Construct a new R-step which is comparable
@@ -140,12 +137,13 @@ def recognizeWrapper(D,
                         current_node.R_step[1],
                         current_node.R_step[2],
                         round(current_node.R_step[3], 6))
-                reconstructed_r_steps.add(temp)
+                reconstructed_r_steps.append(temp)
 
-        info(f'R-Steps from reconstruction:\n{str(reconstructed_r_steps)}')
+        new_list = sorted(reconstructed_r_steps, key=lambda item: item[2])
+        info(f'R-Steps from reconstruction:\n{str(new_list)}')
         # Now we need to check the reconstructed r-steps against
         # the original ones. Extract r-steps from history
-        history_r_steps = set()
+        history_r_steps = []
         offset_counter = 0
         for entry in history:
             # Skip the first 3 entries since they
@@ -163,18 +161,29 @@ def recognizeWrapper(D,
             else:
                 newTuple = (entry[0], entry[1], entry[2], round(entry[3], 6))
 
-            history_r_steps.add(newTuple)
+            history_r_steps.append(newTuple)
 
         info(f'R-Steps from history:\n{str(history_r_steps)}')
         # Now compare them. We use intersection to find elements
         # that were contained in both.
-        result = history_r_steps.intersection(reconstructed_r_steps)
+
+        # Matching entrys with order
+        matchCounter = 0
+        for index in range(len(history_r_steps)):
+            if history_r_steps[index] == reconstructed_r_steps[index]:
+                matchCounter += 1
+            info(f'Compare: {history_r_steps[index]} and {reconstructed_r_steps[index]}')
+        info(f'Match Counter is: {matchCounter}')
+        # Matching entrys without order
+        result = set(history_r_steps).intersection(set(reconstructed_r_steps))
 
         # return the result as one minus the proportion of successful
         # reconstructed steps from all original steps. Care for cases with n=4.
         if len(history_r_steps) != 0:
-            current_divergence = 1 - (len(result) / len(history_r_steps))
-            info(f'Current divergence: {str(current_divergence)}')
+            divergence_without_order = 1 - (len(result) / len(history_r_steps))
+            divergence_with_order = 1 - (matchCounter / len(history_r_steps))
+            info(f'Current divergence without order: {divergence_without_order}')
+            info(f'Current divergence with order: {divergence_with_order}')
 
     # Check: Was the simulated Matrix an R-Map?
     was_classified_as_R_Map = False
@@ -190,7 +199,8 @@ def recognizeWrapper(D,
 
     # Set corresponding values in the current output-Object
     output = Output()
-    output.divergence = current_divergence
+    output.divergenceWithoutOrder = divergence_without_order
+    output.divergenceWithOrder = divergence_with_order
     output.classifiedMatchingFourLeaves = leafes_match
     output.classifiedAsRMap = was_classified_as_R_Map
 
@@ -210,7 +220,8 @@ def benchmark(test_set: Path,
     overallRuntime = 0.0
     numberOfRMaps = 0.0
     numberOfMatchingFourLeafs = 0.0
-    sumOfDivergence = 0.0
+    sumOfDivergenceWithOrder = 0.0
+    sumOfDivergenceWithoutOrder = 0.0
 
     # Load the files
     filePaths = list(test_set.glob('*'))
@@ -287,7 +298,8 @@ def benchmark(test_set: Path,
                     numberOfRMaps += 1
                 if (currentOutput.classifiedMatchingFourLeaves):
                     numberOfMatchingFourLeafs += 1
-                sumOfDivergence += currentOutput.divergence
+                sumOfDivergenceWithOrder += currentOutput.divergenceWithOrder
+                sumOfDivergenceWithoutOrder += currentOutput.divergenceWithoutOrder
                 overallRuntime += currentOutput.measuredRuntime
 
                 # WP3 Stichpunkt vier.
@@ -303,8 +315,10 @@ def benchmark(test_set: Path,
     print(f'Proportion of classified R-Maps is: {proportion}')
     proportion = numberOfMatchingFourLeafs/numberOfScenarios
     print(f'Proporion of 4-leaf-maps: {proportion}')
-    divergence = sumOfDivergence / numberOfScenarios
-    print(f'Average divergence is: {divergence}')
+    divergenceWithOrder = sumOfDivergenceWithOrder / numberOfScenarios
+    print(f'Average divergence with order is: {divergenceWithOrder :.2%}')
+    divergenceWithoutOrder = sumOfDivergenceWithoutOrder / numberOfScenarios
+    print(f'Average divergence without order is: {divergenceWithoutOrder :.2%}')
     print(' End of the Benchmark ')
 
 
