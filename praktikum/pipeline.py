@@ -207,17 +207,6 @@ def recognizeWrapper(D,
     return output
 
 
-def testOutputClass():
-    a = Output(classifiedAsRMap=True,
-               classifiedMatchingFourLeaves=True,
-               divergence=10,
-               measuredRuntime=10,
-               plotMatrix=False,
-               plotSteps=False,
-               plotBoxPlots=False)
-    return a
-
-
 def benchmark(test_set: Path,
               workPackage=2,
               firstLeaves=[0, 1, 2, 3],
@@ -329,13 +318,6 @@ def benchmark(test_set: Path,
     divergence = sumOfDivergence / numberOfScenarios
     print(f'Average divergence is: {divergence}')
     print(' End of the Benchmark ')
-
-
-def testFileLoad():
-    path = '../test-matrices/hists/*.txt'
-    files = glob.glob(path)
-    for file in files:
-        print(file)
 
 
 def wp2benchmark(test_set: Path):
