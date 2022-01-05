@@ -4,6 +4,7 @@ from itertools import combinations, permutations
 import numpy as np
 
 from erdbeermet.tools.Tree import Tree, TreeNode
+from numpy.core.fromnumeric import sort
 
 
 __author__ = 'David Schaller'
@@ -386,16 +387,11 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None):
 
             candidates = _find_candidates(D, V, print_info, B)
 
-            # TODO: Here is the entryPoint for WP4. We have to reorder the list of candidates, and get the candidate with the smallest spike consumption on the lowest indice.
-            # in a first step, iterate through the candidates and calculate all three spike-lengths. - how will we get d(x,z)? ... per matrix D? look at _compute_deltas for hints.
-            # Maybe we can use the _compute_delta_z too, but care for the position on parameters inside of it!
-            # Now find an efficient way to compare the candidates and order them by their spike lengths. 
-            # Problem?: What if we got A with (1,2,3) and B with (2,2,1)? Then A is on the first indice smaller - therefore smaller as B. But B is smaller on the third indice - so smaller
-            # as A too? - Ah lul, they excluded this case and said that this won't happen in the WP4 task description.
-            # TODO: Decide if we solve this with a graph. But it seems like a pairwise comparison would be enough too. We could use a map like they noted and compare all candidates
-            # with each other and count somehow so that we receive the smallest ones. 
-            # Finally order the list of candidates again so that the smallest candidate leads it. 
+            # Spikelength-wise reordering of candidates
+            if len(candidates) > 1:
+                candidates = reorderBySpikelength(candidates=candidates, V=V, D=D)
 
+            # Continue algorithm
             found_valid = False
 
             if print_info:
@@ -460,3 +456,51 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None):
 
     _finalize_tree(recognition_tree)
     return recognition_tree
+
+def reorderBySpikelength(candidates, V, D): 
+    spikelength_dict = {}
+    for current_candidate in candidates:
+
+        # Copied from compute_alpha - if we don't use it, the index is outOfBounds for D.
+        x = V.index(current_candidate[0])
+        y = V.index(current_candidate[1])
+        z = V.index(current_candidate[2])
+
+        # Calculate spike_lengths with the _compute_delta_z(...) from erdbeermet 
+        # def _compute_delta_z(xy, xz, yz): return 0.5 * (xz + yz - xy)
+        # dx = 0.5 * d(y,x) + d(z,x) - d(y,z)
+        dx = _compute_delta_z(D[y,z], D[y,x], D[z,x])
+
+        # dy = 0.5 * d(z,y) + d(x,y) - d(z,x)
+        dy = _compute_delta_z(D[z,x], D[z,y], D[x,y])
+
+        # dz = 0.5 * d(y,x) + d(z,x) - d(y,z)
+        dz = _compute_delta_z(D[y,z], D[y,x], D[z,x])
+
+        spikelength_dict[current_candidate] = (dx, dy, dz)
+        # print("Current spike_lengths: " + str((dx,dy,dz)))
+
+    # Now compare candidates 
+    temp_dict = {}
+    for key1 in spikelength_dict:
+        smaller_counter = 0
+        for key2 in spikelength_dict:
+            if key1 == key2:
+                 continue
+            else:
+                if (spikelength_dict[key1][0] < spikelength_dict[key2][0] 
+                    or spikelength_dict[key1][1] < spikelength_dict[key2][1] 
+                    or spikelength_dict[key1][2] < spikelength_dict[key2][2]):
+                    smaller_counter += 1
+
+            temp_dict[key1] = smaller_counter
+
+    # Order the dict descending because a higher smaller_counter means its smaller then the others and construct the list therefore. 
+    sorted_list = sorted(temp_dict.items(), key = lambda item: item[1], reverse = True)
+
+    # Delete the smaller_count entry in the lists
+    final_list = []
+    for (a,b) in sorted_list:
+        final_list.append(a)
+
+    return final_list
