@@ -95,7 +95,7 @@ def recognizeWrapper(D,
     else:
         recognition_tree = recognize(D, first_candidate_only, print_info)
 
-    # recognition_tree.visualize()
+    recognition_tree.visualize()
 
     # Check: Match reconstructed leafes and orginal leafes?
     leafes_match = False
@@ -107,14 +107,11 @@ def recognizeWrapper(D,
             if current_node.n == 4 and current_node.valid_ways == 1:
                 possible_node_set.append(current_node)
 
-        info(f'{possible_node_set=}')
         # Choose random one of the nodes as stated in WP2
         choosen_node = random.choice(possible_node_set)
-        info(f'Choosen Node: {choosen_node.V}')
+        info(f'Randomly choosen last node: {choosen_node.V}')
         # Check current list of chosen_node against passLeafes-list
-        # TODO current_node.V hat immer Länge 4,
-        # aber firstLeaves kann Länge 3-4 haben
-        if sorted(choosen_node.V) == sorted(firstLeaves):
+        if set(firstLeaves).issubset(set(choosen_node.V)):
             leafes_match = True
             info('Leafes matched!')
 
@@ -134,7 +131,7 @@ def recognizeWrapper(D,
                 # randomly before at the leaf matching.
                 # So we will skip all others.
                 if current_node.n == 4 and current_node != choosen_node:
-                    info(f'Skipped this entry: {str(current_node.V)}')
+                    info(f'Skipped this entry: {str(current_node.V)} although it was valid but not chosen.')
                     continue
 
                 # Construct a new R-step which is comparable
@@ -145,40 +142,33 @@ def recognizeWrapper(D,
                         round(current_node.R_step[3], 6))
                 reconstructed_r_steps.add(temp)
 
-        info(f'R-Steps: {str(reconstructed_r_steps)}')
+        info(f'R-Steps from reconstruction:\n{str(reconstructed_r_steps)}')
         # Now we need to check the reconstructed r-steps against
         # the original ones. Extract r-steps from history
         history_r_steps = set()
         offset_counter = 0
         for entry in history:
-            info(f'Entry: {str(entry)}')
-
             # Skip the first 3 entries since they
             # aren't in the reconstructed set.
             if offset_counter <= 2:
                 offset_counter += 1
-                info('Skipped')
                 continue
 
             # We have to modifiy the values and sort x,y in the
             # same order (ascending) as the reconstructed r_steps are.
             # The last entry of alpha does not match on the last
             # few digits sometimes. So I restricted it to 6 digits.
-            info('Real entry')
             if entry[0] > entry[1]:
                 newTuple = (entry[1], entry[0], entry[2], round(1-entry[3], 6))
             else:
                 newTuple = (entry[0], entry[1], entry[2], round(entry[3], 6))
 
-            info(f'New Tuple is: {newTuple}')
-
             history_r_steps.add(newTuple)
 
-        info(f'History-R-Steps: {str(history_r_steps)}')
+        info(f'R-Steps from history:\n{str(history_r_steps)}')
         # Now compare them. We use intersection to find elements
         # that were contained in both.
         result = history_r_steps.intersection(reconstructed_r_steps)
-        info(f'Result intersection: {str(result)}')
 
         # return the result as one minus the proportion of successful
         # reconstructed steps from all original steps. Care for cases with n=4.
@@ -269,16 +259,14 @@ def benchmark(test_set: Path,
             else:
                 combinationsOfLeafes = [None]
 
-            info(combinationsOfLeafes)
             # Rotate until you find a valid solution
             for combination in combinationsOfLeafes:
-                info(f'Checked combination: {str(combination)}')
+                info(f'Checked combination of core leafes: {str(combination)}')
                 if combination is not None:
                     # The first leafes must correspond to the ones which
                     # are forbidden and therefore can't be deleted
                     # by the recognition algorithm.
                     firstLeaves = combination
-                info(f'First leafes are: {str(firstLeaves)}')
                 # Create our Object where the evaluation will be captured.
                 currentOutput = Output()
                 # use the pipeline on it
