@@ -4,7 +4,7 @@ class Output:
     classifiedMatchingFourLeaves = False
     divergenceWithoutOrder = 0.0
     divergenceWithOrder = 0.0
-    measuredRuntime = 0.0
+    # measuredRuntime = 0.0
     plotMatrix = False
     plotSteps = False
     plotBoxPlots = False
@@ -26,8 +26,8 @@ class Output:
         string += ('* Proportion of diverging steps ' +
                    f'without order was {self.divergenceWithoutOrder :.2%}.\n')
 
-        if self.measuredRuntime != 0.0:
-            string += f'* The task took {self.measuredRuntime} seconds.\n'
+        # if self.measuredRuntime != 0.0:
+        #     string += f'* The task took {self.measuredRuntime} seconds.\n'
 
         # TODO: Plotters
         if self.plotMatrix:

@@ -38,7 +38,7 @@ class BenchmarkStatistics:
     sumOfDivergenceWithoutOrder: float
 
     def __init__(self) -> None:
-        self.overallRuntime = 0.0
+        # self.overallRuntime = 0.0
         self.numberOfRMaps = 0
         self.numberOfMatchingFourLeafs = 0
         self.sumOfDivergenceWithOrder = 0.0
@@ -47,7 +47,7 @@ class BenchmarkStatistics:
     def add(left: 'BenchmarkStatistics',
             right: 'BenchmarkStatistics') -> 'BenchmarkStatistics':
         sum = BenchmarkStatistics()
-        sum.overallRuntime = left.overallRuntime + right.overallRuntime
+        # sum.overallRuntime = left.overallRuntime + right.overallRuntime
         sum.numberOfRMaps = left.numberOfRMaps + right.numberOfRMaps
         sum.numberOfMatchingFourLeafs = (left.numberOfMatchingFourLeafs +
                                          right.numberOfMatchingFourLeafs)
@@ -132,7 +132,8 @@ class Benchmark:
                 stats.numberOfMatchingFourLeafs += 1
             stats.sumOfDivergenceWithOrder += output.divergenceWithOrder
             stats.sumOfDivergenceWithoutOrder += output.divergenceWithoutOrder
-            stats.overallRuntime += output.measuredRuntime
+            # stats.overallRuntime += output.measuredRuntime
+
             # WP3 Stichpunkt vier.
             # TODO: What was this about again?
             if (self.work_package == WORK_PACKAGE_3_4
@@ -153,8 +154,8 @@ def pipeline(history: History,
              forbidden_leaves: Optional[list[int]] = None,
              print_info: bool = False) -> Output:
 
-    if measurePerformance:
-        startTime = timer()
+    #if measurePerformance:
+        # startTime = timer()
 
     simulationMatrix = None
 
@@ -177,10 +178,10 @@ def pipeline(history: History,
             first_leaves=first_leaves,
             forbidden_leaves=forbidden_leaves)
 
-    if measurePerformance:
+    #if measurePerformance:
         # measure time
-        endTime = timer()
-        output.measuredRuntime = endTime - startTime
+        # endTime = timer()
+        # output.measuredRuntime = endTime - startTime
 
     # print single outputs if debug is enabled
     info(output)
@@ -354,6 +355,7 @@ def benchmark_all(test_set: Path,
 
     # Get overall number of used scenarios
     number_of_scenarios = len(filePaths)
+    startTimeParallel = timer()
     # TODO: Re-add progress bar?
     with Pool() as pool:
         # For every file, use the pipeline ~ loop it baby, loop it!
@@ -364,6 +366,8 @@ def benchmark_all(test_set: Path,
         # Reduce all the statistics into a single one and print that
         # We'll need to do this here to force lazy evaluation to proceed
         final_statistic = reduce(BenchmarkStatistics.add, statistics)
+        endTimeParallel = timer()
+        final_statistic.overallRuntime = endTimeParallel - startTimeParallel
         final_statistic.pretty_print(number_of_scenarios, work_package)
 
 
