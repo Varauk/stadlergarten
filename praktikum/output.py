@@ -9,10 +9,10 @@ class Output:
     plotSteps = False
     plotBoxPlots = False
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def __str__(self):
+    def __str__(self) -> str:
         string = 'Statistics for this runtrough:\n'
 
         if self.classifiedAsRMap:
@@ -40,5 +40,5 @@ class Output:
         return string
 
     @DeprecationWarning
-    def print(self):
+    def print(self) -> None:
         print(self)
