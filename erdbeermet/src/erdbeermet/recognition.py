@@ -489,6 +489,7 @@ def reorderBySpikelength(candidates, V, D, use_erdbeermet_computation):
                 if u in [x,y,z]:
                     continue
                 else:
+                    u = V.index(u)
                     delta_x += _delta_x(D=D, x=x, y=y, z=z, u=u, alpha=current_candidate[4])
                     delta_y += _delta_y(D=D, x=x, y=y, z=z, u=u, alpha=current_candidate[4])
                     counter += 1
