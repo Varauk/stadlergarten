@@ -52,6 +52,9 @@ class Output:
 
         return string
 
+    def stop_timer(self) -> None:
+        self.timer_end = timer()
+
     @DeprecationWarning
     def print(self) -> None:
         print(self)

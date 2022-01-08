@@ -330,6 +330,8 @@ def recognizeWrapper(D: list[int],
 
     info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
 
+    # Make sure to stop the output timer
+    output.stop_timer()
     return output
 
 
