@@ -5,7 +5,7 @@ from erdbeermet.recognition import recognize
 # Python packages
 from typing import Final, Optional, Union
 from timeit import default_timer as timer
-from logging import info, error
+from logging import info
 import itertools
 import random
 from pathlib import Path
@@ -412,10 +412,9 @@ def benchmark_all(test_set: Path,
         benchmark = Benchmark(work_package=work_package,
                               forbidden_leaves=forbidden_leaves,
                               plot_when=plot_when)
-        # Lazily construct our statistics
-        statistics = pool.imap_unordered(benchmark, filePaths)
+        # Construct our statistics on all cores
+        statistics = pool.map(benchmark, filePaths)
         # Reduce all the statistics into a single one and print that
-        # We'll need to do this here to force lazy evaluation to proceed
         final_statistic = reduce(BenchmarkStatistics.add, statistics)
         final_statistic.pretty_print(number_of_scenarios, work_package)
 
