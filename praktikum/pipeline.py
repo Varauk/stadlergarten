@@ -38,23 +38,33 @@ class PlotWhen(Enum):
 
 
 class BenchmarkStatistics:
-    overallRuntime: float
+    timer_start: float
+    timer_end: Optional[float]
     numberOfRMaps: int
     numberOfMatchingFourLeafs: int
     sumOfDivergenceWithOrder: float
     sumOfDivergenceWithoutOrder: float
 
     def __init__(self) -> None:
-        # self.overallRuntime = 0.0
+        self.timer_start = timer()
+        self.timer_end = None
         self.numberOfRMaps = 0
         self.numberOfMatchingFourLeafs = 0
         self.sumOfDivergenceWithOrder = 0.0
         self.sumOfDivergenceWithoutOrder = 0.0
 
+    def stop_timer(self) -> None:
+        self.timer_end = timer()
+
     def add(left: 'BenchmarkStatistics',
             right: 'BenchmarkStatistics') -> 'BenchmarkStatistics':
         sum = BenchmarkStatistics()
-        # sum.overallRuntime = left.overallRuntime + right.overallRuntime
+        sum.timer_start = min(left.timer_start, right.timer_start)
+        # Make sure our timers are not None, if they are,
+        # I'll assume they'll run forever
+        left_t_end_f = left.timer_end or float('inf')
+        right_t_end_f = right.timer_end or float('inf')
+        sum.timer_end = max(left_t_end_f, right_t_end_f)
         sum.numberOfRMaps = left.numberOfRMaps + right.numberOfRMaps
         sum.numberOfMatchingFourLeafs = (left.numberOfMatchingFourLeafs +
                                          right.numberOfMatchingFourLeafs)
@@ -71,12 +81,16 @@ class BenchmarkStatistics:
         prop_4_leaf = self.numberOfMatchingFourLeafs / total_count
         divergence_ordered = self.sumOfDivergenceWithOrder / total_count
         divergence_unordered = self.sumOfDivergenceWithoutOrder / total_count
+        if isinstance(self.timer_end, float):
+            total_runtime = self.timer_end - self.timer_start
+        else:
+            total_runtime = float('inf')
 
         print(f'''
   +--------------= Benchmark =---------------+
   |                  Workpackage: {work_package :>9}  |
   | Number of simulated matrices: {total_count :>9}  |
-  |     Overall runtime measured: {self.overallRuntime :>9.2f}s |
+  |     Overall runtime measured: {total_runtime :>9.2f}s |
   |  Correctly classified R-Maps: {correctly_classified :>10.2%} |
   |    Proportion of 4-leaf-maps: {prop_4_leaf :>10.2%} |
   |  Avg. divergence   (ordered): {divergence_ordered :>10.2%} |
@@ -137,19 +151,21 @@ class Benchmark:
                               forbidden_leaves=combination)
             # Use the values of the current Output Object
             # to modify overall values of benchmark
-            if (output.classifiedAsRMap):
+            if (output.classified_as_r_map):
                 stats.numberOfRMaps += 1
-            if (output.classifiedMatchingFourLeaves):
+            if (output.classified_as_matching_four_leaves):
                 stats.numberOfMatchingFourLeafs += 1
-            stats.sumOfDivergenceWithOrder += output.divergenceWithOrder
-            stats.sumOfDivergenceWithoutOrder += output.divergenceWithoutOrder
-            # stats.overallRuntime += output.measuredRuntime
+            stats.sumOfDivergenceWithOrder += output.divergence_with_order
+            stats.sumOfDivergenceWithoutOrder += output.divergence_without_order
 
             # WP3 Stichpunkt vier.
             # TODO: What was this about again?
             if (self.work_package == WORK_PACKAGE_3_4
-               and output.classifiedAsRMap):
+               and output.classified_as_r_map):
                 break
+
+        # Stop the timer and return the results
+        stats.stop_timer()
         return stats
 
 
@@ -165,10 +181,6 @@ def pipeline(history: History,
              first_candidate_only: bool = True,
              forbidden_leaves: Optional[list[int]] = None,
              print_info: bool = False) -> Output:
-
-    #if measurePerformance:
-        # startTime = timer()
-
     simulationMatrix = None
 
     if (predefinedSimulationMatrix is None):
@@ -191,11 +203,6 @@ def pipeline(history: History,
             first_leaves=first_leaves,
             forbidden_leaves=forbidden_leaves)
 
-    #if measurePerformance:
-        # measure time
-        # endTime = timer()
-        # output.measuredRuntime = endTime - startTime
-
     # print single outputs if debug is enabled
     info(output)
 
@@ -210,6 +217,8 @@ def recognizeWrapper(D: list[int],
                      measureDivergence: bool = False,
                      first_leaves: Optional[list[int]] = None,
                      forbidden_leaves: Optional[list[int]] = None) -> Output:
+    # Create our output object this also starts the timer
+    output = Output()
 
     # Shall recognize skip forbidden leaves?
     if forbidden_leaves is not None:
@@ -219,7 +228,6 @@ def recognizeWrapper(D: list[int],
         recognition_tree = recognize(D, first_candidate_only, print_info)
 
     # Check: Match reconstructed leaves and orginal leaves?
-    leaves_match = False
     if first_leaves is not None:
         # build a set which contains all childs
         possible_node_set = []
@@ -233,13 +241,11 @@ def recognizeWrapper(D: list[int],
         info(f'Randomly choosen last node: {choosen_node.V}')
         # Check current list of chosen_node against passLeafes-list
         if set(first_leaves).issubset(set(choosen_node.V)):
-            leaves_match = True
+            output.classified_as_matching_four_leaves = True
             info('Leafes matched!')
 
     # Check: Do the R-Steps from the reconstructed tree
     # diverge from the original R-Steps?
-    divergence_with_order = 0.0
-    divergence_without_order = 0.0
     if measureDivergence:
         reconstructed_r_steps = []
 
@@ -306,31 +312,23 @@ def recognizeWrapper(D: list[int],
         # return the result as one minus the proportion of successful
         # reconstructed steps from all original steps. Care for cases with n=4.
         if len(history_r_steps) != 0:
-            divergence_without_order = 1 - (len(result) / len(history_r_steps))
-            divergence_with_order = 1 - (matchCounter / len(history_r_steps))
-            info(f'Current divergence without order: {divergence_without_order}')
-            info(f'Current divergence with order: {divergence_with_order}')
+            output.divergence_without_order = 1 - (len(result) / len(history_r_steps))
+            output.divergence_with_order = 1 - (matchCounter / len(history_r_steps))
+            info(f'Current divergence without order: {output.divergence_without_order}')
+            info(f'Current divergence with order: {output.divergence_with_order}')
 
     # Check: Was the simulated Matrix an R-Map?
-    was_classified_as_R_Map = False
     if recognition_tree.root.valid_ways > 0:
-        was_classified_as_R_Map = True
+        output.classified_as_r_map = True
     # If not, Reconstruction failed and we should
     # TODO: output 'plot distance matrices, recognition steps
     #       and final box plots of scenarios'
     if plot_when == PlotWhen.ALWAYS or (
-       plot_when == PlotWhen.ON_ERR and not was_classified_as_R_Map):
+       plot_when == PlotWhen.ON_ERR and not output.classified_as_r_map):
         # TODO: When to visualize???
         recognition_tree.visualize()
 
     info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
-
-    # Set corresponding values in the current output-Object
-    output = Output()
-    output.divergenceWithoutOrder = divergence_without_order
-    output.divergenceWithOrder = divergence_with_order
-    output.classifiedMatchingFourLeaves = leaves_match
-    output.classifiedAsRMap = was_classified_as_R_Map
 
     return output
 
@@ -370,7 +368,6 @@ def benchmark_all(test_set: Path,
 
     # Get overall number of used scenarios
     number_of_scenarios = len(filePaths)
-    startTimeParallel = timer()
     # TODO: Re-add progress bar?
     with Pool() as pool:
         # For every file, use the pipeline ~ loop it baby, loop it!
@@ -383,8 +380,6 @@ def benchmark_all(test_set: Path,
         # Reduce all the statistics into a single one and print that
         # We'll need to do this here to force lazy evaluation to proceed
         final_statistic = reduce(BenchmarkStatistics.add, statistics)
-        endTimeParallel = timer()
-        final_statistic.overallRuntime = endTimeParallel - startTimeParallel
         final_statistic.pretty_print(number_of_scenarios, work_package)
 
 
