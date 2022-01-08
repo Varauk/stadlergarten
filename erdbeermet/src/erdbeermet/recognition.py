@@ -332,7 +332,7 @@ def _finalize_tree(recognition_tree):
     _sort_children(recognition_tree.root)
 
 
-def recognize(D, first_candidate_only=False, print_info=False, B=None):
+def recognize(D, first_candidate_only=False, print_info=False, B=None, use_erdbeermet_computation=False):
     """Recognition of type R matrices.
 
     Parameters
@@ -389,7 +389,7 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None):
 
             # Spikelength-wise reordering of candidates
             if len(candidates) > 1:
-                candidates = reorderBySpikelength(candidates=candidates, V=V, D=D)
+                candidates = reorderBySpikelength(candidates=candidates, V=V, D=D, use_erdbeermet_computation=use_erdbeermet_computation)
 
             # Continue algorithm
             found_valid = False
@@ -457,29 +457,50 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None):
     _finalize_tree(recognition_tree)
     return recognition_tree
 
-def reorderBySpikelength(candidates, V, D): 
+def reorderBySpikelength(candidates, V, D, use_erdbeermet_computation): 
     spikelength_dict = {}
     for current_candidate in candidates:
 
-        # Copied from compute_alpha - if we don't use it, the index is outOfBounds for D.
-        x = V.index(current_candidate[0])
-        y = V.index(current_candidate[1])
-        z = V.index(current_candidate[2])
+        if use_erdbeermet_computation:
+            # Erbeermet approach by using their function
+            (delta_z, _ , delta_x, delta_y) = _compute_deltas(V=V,
+                                                            D=D,
+                                                            alpha=current_candidate[4],
+                                                            x=current_candidate[0],
+                                                            y=current_candidate[1],
+                                                            z=current_candidate[2],
+                                                            u=current_candidate[3])
 
-        # Calculate spike_lengths with the _compute_delta_z(...) from erdbeermet 
-        # def _compute_delta_z(xy, xz, yz): return 0.5 * (xz + yz - xy)
-        # dx = 0.5 * d(y,x) + d(z,x) - d(y,z)
-        dx = _compute_delta_z(D[y,z], D[y,x], D[z,x])
+            spikelength_dict[current_candidate] = (delta_x, delta_y, delta_z)
+        
+        else:
+            # Computational approach from WP4
+            # Copied from compute_alpha - if we don't use it, the index is outOfBounds for D.
+            x = V.index(current_candidate[0])
+            y = V.index(current_candidate[1])
+            z = V.index(current_candidate[2])
 
-        # dy = 0.5 * d(z,y) + d(x,y) - d(z,x)
-        dy = _compute_delta_z(D[z,x], D[z,y], D[x,y])
-
-        # dz = 0.5 * d(y,x) + d(z,x) - d(y,z)
-        dz = _compute_delta_z(D[y,z], D[y,x], D[z,x])
-
-        spikelength_dict[current_candidate] = (dx, dy, dz)
-        # print("Current spike_lengths: " + str((dx,dy,dz)))
-
+            # Calculate spike lengths fur arbitrary u in V
+            delta_z = _delta_z(D=D, x=x, y=y, z=z)
+            delta_x = 0.0
+            delta_y = 0.0
+            counter = 0
+            for u in V:
+                if u in [x,y,z]:
+                    continue
+                else:
+                    delta_x += _delta_x(D=D, x=x, y=y, z=z, u=u, alpha=current_candidate[4])
+                    delta_y += _delta_y(D=D, x=x, y=y, z=z, u=u, alpha=current_candidate[4])
+                    counter += 1
+            # Collect resulting deltas
+            if counter != 0:
+                final_delta_x = delta_x / counter
+                final_delta_y = delta_y / counter
+            else:
+                final_delta_x = 0.0
+                final_delta_y = 0.0
+            spikelength_dict[current_candidate] = (final_delta_x, final_delta_y, delta_z)
+    
     # Now compare candidates 
     temp_dict = {}
     for key1 in spikelength_dict:
@@ -498,9 +519,19 @@ def reorderBySpikelength(candidates, V, D):
     # Order the dict descending because a higher smaller_counter means its smaller then the others and construct the list therefore. 
     sorted_list = sorted(temp_dict.items(), key = lambda item: item[1], reverse = True)
 
-    # Delete the smaller_count entry in the lists
-    final_list = []
-    for (a,b) in sorted_list:
-        final_list.append(a)
+    # Delete the smaller_count entry in the lists and return
+    return [a for (a,b) in sorted_list]
 
-    return final_list
+# Helper functions for Spike-Length Computation
+def _delta_abc(D, a, b, c):
+    return 0.5 * (D[a,c] + D[b,c] - D[a,b]) 
+
+def _delta_x(D, x, y, z, u, alpha):
+    return _delta_abc(D=D, a=u, b=y, c=x) - ((1/(2*alpha)) * (D[x,y] + D[z,u] - D[x,z] - D[y,u]))
+
+
+def _delta_y(D, x, y, z, u, alpha):
+    return _delta_abc(D=D, a=u, b=x, c=y) - ((1/(2*(1-alpha))) * (D[x,y] + D[z,u] - D[x,u] - D[y,z]))
+
+def _delta_z(D, x, y, z):
+    return _delta_abc(D=D, a=x, b=y, c=z)
