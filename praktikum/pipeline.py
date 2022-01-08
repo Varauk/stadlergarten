@@ -11,6 +11,7 @@ import random
 from pathlib import Path
 from multiprocessing import Pool
 from functools import reduce
+from enum import Enum
 
 # Own classes
 from output import Output
@@ -28,6 +29,12 @@ History = list[tuple[int, int, int, float, float]]
 # TODO: Output blanks implementieren
 # Halbes TODO: Generation in pipeline überarbeiten
 # (size, clocklike und circular)
+
+
+class PlotWhen(Enum):
+    NEVER = 'never'
+    ON_ERR = 'on-err'
+    ALWAYS = 'always'
 
 
 class BenchmarkStatistics:
@@ -83,12 +90,15 @@ class Benchmark:
        Used to allow the easy usage of multiprocessing.Pool'''
     work_package: int
     forbidden_leaves: Union[list[int], int, None]
+    plot_when: PlotWhen
 
     def __init__(self,
+                 plot_when: PlotWhen,
                  work_package: int,
                  forbidden_leaves: Union[list[int], int, None]) -> None:
         self.work_package = work_package
         self.forbidden_leaves = forbidden_leaves
+        self.plot_when = plot_when
 
     def __call__(self, path: Path) -> BenchmarkStatistics:
         print(f'Working on: {path}')
@@ -123,6 +133,7 @@ class Benchmark:
                               first_leaves=first_leaves,
                               first_candidate_only=True,
                               history=scenario.history,
+                              plot_when=self.plot_when,
                               forbidden_leaves=combination)
             # Use the values of the current Output Object
             # to modify overall values of benchmark
@@ -143,6 +154,7 @@ class Benchmark:
 
 
 def pipeline(history: History,
+             plot_when: PlotWhen,
              size: int = 10,
              circular: bool = False,
              clocklike: bool = False,
@@ -171,6 +183,7 @@ def pipeline(history: History,
 
     output = recognizeWrapper(
             simulationMatrix,
+            plot_when=plot_when,
             first_candidate_only=first_candidate_only,
             print_info=print_info,
             measureDivergence=measureDivergence,
@@ -191,6 +204,7 @@ def pipeline(history: History,
 
 def recognizeWrapper(D: list[int],
                      history: History,
+                     plot_when: PlotWhen,
                      first_candidate_only: bool = True,
                      print_info: bool = False,
                      measureDivergence: bool = False,
@@ -203,8 +217,6 @@ def recognizeWrapper(D: list[int],
                                      forbidden_leaves)
     else:
         recognition_tree = recognize(D, first_candidate_only, print_info)
-
-    # recognition_tree.visualize()
 
     # Check: Match reconstructed leaves and orginal leaves?
     leaves_match = False
@@ -306,8 +318,10 @@ def recognizeWrapper(D: list[int],
     # If not, Reconstruction failed and we should
     # TODO: output 'plot distance matrices, recognition steps
     #       and final box plots of scenarios'
-    else:
-        pass
+    if plot_when == PlotWhen.ALWAYS or (
+       plot_when == PlotWhen.ON_ERR and not was_classified_as_R_Map):
+        # TODO: When to visualize???
+        recognition_tree.visualize()
 
     info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
 
@@ -341,6 +355,7 @@ def expand_leaves(leaves: Union[list[int], int, None],
 
 
 def benchmark_all(test_set: Path,
+                  plot_when: PlotWhen,
                   work_package: int = 2,
                   first_leaves: list[int] = [0, 1, 2, 3],
                   forbidden_leaves: Union[list[int], int, None] = None
@@ -360,7 +375,9 @@ def benchmark_all(test_set: Path,
     with Pool() as pool:
         # For every file, use the pipeline ~ loop it baby, loop it!
         # Eww, my CPU get's so bored by this ~ USE THE DAMN CORES!
-        benchmark = Benchmark(work_package, forbidden_leaves)
+        benchmark = Benchmark(work_package=work_package,
+                              forbidden_leaves=forbidden_leaves,
+                              plot_when=plot_when)
         # Lazily construct our statistics
         statistics = pool.imap_unordered(benchmark, filePaths)
         # Reduce all the statistics into a single one and print that
@@ -371,23 +388,33 @@ def benchmark_all(test_set: Path,
         final_statistic.pretty_print(number_of_scenarios, work_package)
 
 
-def wp2benchmark(test_set: Path) -> None:
-    benchmark_all(test_set, work_package=WORK_PACKAGE_2)
+def wp2benchmark(test_set: Path, plot_when: PlotWhen) -> None:
+    benchmark_all(test_set, work_package=WORK_PACKAGE_2, plot_when=plot_when)
 
 
-def wp31benchmark(test_set: Path) -> None:
-    benchmark_all(test_set, work_package=WORK_PACKAGE_3, forbidden_leaves=[0, 1, 2])
-
-
-def wp32benchmark(test_set: Path) -> None:
+def wp31benchmark(test_set: Path, plot_when: PlotWhen) -> None:
     benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3,
-                  forbidden_leaves=[0, 1, 2, 3])
+                  forbidden_leaves=[0, 1, 2],
+                  plot_when=plot_when)
 
 
-def wp341benchmark(test_set: Path) -> None:
-    benchmark_all(test_set, work_package=WORK_PACKAGE_3_4, forbidden_leaves=3)
+def wp32benchmark(test_set: Path, plot_when: PlotWhen) -> None:
+    benchmark_all(test_set,
+                  work_package=WORK_PACKAGE_3,
+                  forbidden_leaves=[0, 1, 2, 3],
+                  plot_when=plot_when)
 
 
-def wp342benchmark(test_set: Path) -> None:
-    benchmark_all(test_set, work_package=WORK_PACKAGE_3_4, forbidden_leaves=4)
+def wp341benchmark(test_set: Path, plot_when: PlotWhen) -> None:
+    benchmark_all(test_set,
+                  work_package=WORK_PACKAGE_3_4,
+                  forbidden_leaves=3,
+                  plot_when=plot_when)
+
+
+def wp342benchmark(test_set: Path, plot_when: PlotWhen) -> None:
+    benchmark_all(test_set,
+                  work_package=WORK_PACKAGE_3_4,
+                  forbidden_leaves=4,
+                  plot_when=plot_when)
