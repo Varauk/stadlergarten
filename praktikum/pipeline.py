@@ -349,7 +349,10 @@ def expand_leaves(leaves: Union[list[int], int, None],
         # Other solutions are more interesting.
         return list(reversed(leav_lists))
     else:
-        return []
+        # None.. well.. judging from forbidden_leaves, this means
+        # there is a single element with no forbidden_leaves. There is exactly
+        # one combination of `count` leaves from zero leaves
+        return [[]]
 
 
 def benchmark_all(test_set: Path,
