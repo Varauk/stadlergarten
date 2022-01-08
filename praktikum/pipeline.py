@@ -5,13 +5,14 @@ from erdbeermet.recognition import recognize
 # Python packages
 from typing import Final, Optional, Union
 from timeit import default_timer as timer
-from logging import info
+from logging import info, error
 import itertools
 import random
 from pathlib import Path
 from multiprocessing import Pool
 from functools import reduce
 from enum import Enum
+import zipfile
 
 # Own classes
 from output import Output
@@ -325,7 +326,6 @@ def recognizeWrapper(D: list[int],
     #       and final box plots of scenarios'
     if plot_when == PlotWhen.ALWAYS or (
        plot_when == PlotWhen.ON_ERR and not output.classified_as_r_map):
-        # TODO: When to visualize???
         recognition_tree.visualize()
 
     info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
@@ -355,6 +355,37 @@ def expand_leaves(leaves: Union[list[int], int, None],
         return [[]]
 
 
+def expand_hists_file(filePaths: list[Path]) -> list[Path]:
+    ''' Make sure the given filePaths are not just a single zip.
+        If the given list is a single zip, we'll extract that
+        and return a list of paths contained in the zip. '''
+    if len(filePaths) > 2:
+        # There's more than just a folder + the original zip!
+        return filePaths
+
+    zip_files = list(filter(zipfile.is_zipfile, filePaths))
+    if len(zip_files) != 1:
+        # No way there's more than one zip in this folder, somethings wrong!
+        return filePaths
+
+    # There is only one zip file, let's handle that
+    zip = filePaths[0]
+    # Extract into `original/path/to/file.zip.d/`
+    extract_dir = zip.parent / (zip.name + '.d')
+    # Have we extracted this file already?
+    if extract_dir.exists() and extract_dir.is_dir():
+        # Yes, we have!
+        info("Hists are zipped, but we've already extracted them! YEAH!")
+        return list(extract_dir.glob('*'))
+    else:
+        # No, we have not!
+        # Let's do it then
+        info("Hists are zipped, I'll extract them for you! One sec..")
+        with zipfile.ZipFile(zip) as file:
+            file.extractall(extract_dir)
+        return list(extract_dir.glob('*'))
+
+
 def benchmark_all(test_set: Path,
                   plot_when: PlotWhen,
                   work_package: int = 2,
@@ -368,6 +399,9 @@ def benchmark_all(test_set: Path,
     '''
     # Load the files
     filePaths = list(test_set.glob('*'))
+    # Large test sets are compressed into a single zip file
+    # Let's make sure that's unpacked before we start
+    filePaths = expand_hists_file(filePaths)
 
     # Get overall number of used scenarios
     number_of_scenarios = len(filePaths)
