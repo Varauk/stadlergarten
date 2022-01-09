@@ -1,3 +1,7 @@
+# Imports from libraries
+from tqdm.contrib.logging import logging_redirect_tqdm
+from tqdm.contrib.concurrent import process_map
+
 # Erdbeermet
 from erdbeermet.simulation import simulate, load
 from erdbeermet.recognition import recognize
@@ -9,7 +13,6 @@ from logging import info
 import itertools
 import random
 from pathlib import Path
-from multiprocessing import Pool
 from functools import reduce
 from enum import Enum
 import zipfile
@@ -116,7 +119,6 @@ class Benchmark:
         self.plot_when = plot_when
 
     def __call__(self, path: Path) -> BenchmarkStatistics:
-        print(f'Working on: {path}')
         # extract clockwise and circular info from filename
         circular = path.name.find('i') != -1
         clocklike = path.name.find('o') != -1
@@ -407,17 +409,18 @@ def benchmark_all(test_set: Path,
 
     # Get overall number of used scenarios
     number_of_scenarios = len(filePaths)
-    # TODO: Re-add progress bar?
-    with Pool() as pool:
+
+    # TODO: Redirecting does not work for me..
+    with logging_redirect_tqdm():
         # For every file, use the pipeline ~ loop it baby, loop it!
         # Eww, my CPU get's so bored by this ~ USE THE DAMN CORES!
         benchmark = Benchmark(work_package=work_package,
                               forbidden_leaves=forbidden_leaves,
                               plot_when=plot_when)
         # Construct our statistics on all cores
-        statistics = pool.map(benchmark, filePaths)
+        statistics_iter = process_map(benchmark, filePaths)
         # Reduce all the statistics into a single one and print that
-        final_statistic = reduce(BenchmarkStatistics.add, statistics)
+        final_statistic = reduce(BenchmarkStatistics.add, statistics_iter)
         final_statistic.pretty_print(number_of_scenarios, work_package)
 
 
