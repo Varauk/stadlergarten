@@ -4,18 +4,21 @@ from sys import argv, exit
 import math
 import random
 from pathlib import Path
-from glob import glob
+from typing import Final
 
 from erdbeermet.simulation import simulate
 
-PATH = Path('./omegaset')
-PROP_CIRCULAR = 0.25
-PROP_CLOCKLIKE = 0.25
-DEFAULT_MIN_MATRIX_SIZE = 5
-DEFAULT_MAX_MATRIX_SIZE = 10
+PROP_CIRCULAR: Final[float] = 0.25
+PROP_CLOCKLIKE: Final[float] = 0.25
+DEFAULT_MIN_MATRIX_SIZE: Final[int] = 5
+DEFAULT_MAX_MATRIX_SIZE: Final[int] = 10
+USAGE = 'Usage: ./gen.py FOLDER NUMBER_OF_MATRICES [MIN_MATRIX_SIZE] [MAX_MATRIX_SIZE]'
 
 
-def generate(count, min_size, max_size):
+def generate(folder: Path,
+             count: int,
+             min_size: int,
+             max_size: int) -> None:
     # Really?
     if (count == 0):
         print('Done... Idiot...')
@@ -26,7 +29,7 @@ def generate(count, min_size, max_size):
     size_len = math.ceil(math.log(max_size, 10))
 
     # Create the target directory if missing
-    PATH.mkdir(parents=True, exist_ok=True)
+    folder.mkdir(parents=True, exist_ok=True)
 
     # Repeat count times
     for idx in range(count):
@@ -44,24 +47,26 @@ def generate(count, min_size, max_size):
         print('Generating {}.. '.format(filename), end='')
 
         szenario = simulate(size, circular=is_circular, clocklike=is_clocklike)
-        szenario.write_history(PATH/filename)
+        szenario.write_history(folder/filename)
         print('done')
 
 
-def delete_old_hists():
+def delete_old_hists(folder: Path) -> None:
     print('Removing old hist files.. ', end='')
-    hists = PATH.glob('*')
+    hists = folder.glob('*')
     for hist in hists:
         hist.unlink()
     print('done')
 
 
 if __name__ == '__main__':
-    if len(argv) < 2:
-        print('Usage: ./gen.py NUMBER_OF_MATRICES [MIN_MATRIX_SIZE] [MAX_MATRIX_SIZE]')
+    if len(argv) < 3:
+        print(USAGE)
         exit(1)
-    count = int(argv[1])
-    min_size = argv[2] if len(argv) >= 3 else DEFAULT_MIN_MATRIX_SIZE
-    max_size = argv[3] if len(argv) >= 4 else DEFAULT_MAX_MATRIX_SIZE
-    delete_old_hists()
-    generate(count=count, min_size=min_size, max_size=max_size)
+    folder = Path(argv[1])
+    count = int(argv[2])
+
+    min_size = int(argv[3]) if len(argv) > 3 else DEFAULT_MIN_MATRIX_SIZE
+    max_size = int(argv[4]) if len(argv) > 4 else DEFAULT_MAX_MATRIX_SIZE
+    delete_old_hists(folder)
+    generate(folder=folder, count=count, min_size=min_size, max_size=max_size)
