@@ -391,6 +391,7 @@ def expand_hists_file(filePaths: list[Path]) -> list[Path]:
 
 
 def benchmark_all(test_set: Path,
+                  nr_of_cores: Optional[int],
                   plot_when: PlotWhen,
                   work_package: int = 2,
                   first_leaves: list[int] = [0, 1, 2, 3],
@@ -418,39 +419,58 @@ def benchmark_all(test_set: Path,
                               forbidden_leaves=forbidden_leaves,
                               plot_when=plot_when)
         # Construct our statistics on all cores
-        statistics_iter = process_map(benchmark, filePaths)
+        statistics_iter = process_map(benchmark,
+                                      filePaths,
+                                      max_workers=nr_of_cores)
         # Reduce all the statistics into a single one and print that
         final_statistic = reduce(BenchmarkStatistics.add, statistics_iter)
         final_statistic.pretty_print(number_of_scenarios, work_package)
 
 
-def wp2benchmark(test_set: Path, plot_when: PlotWhen) -> None:
-    benchmark_all(test_set, work_package=WORK_PACKAGE_2, plot_when=plot_when)
+def wp2benchmark(test_set: Path,
+                 plot_when: PlotWhen,
+                 nr_of_cores: Optional[int]) -> None:
+    benchmark_all(test_set,
+                  work_package=WORK_PACKAGE_2,
+                  plot_when=plot_when,
+                  nr_of_cores=nr_of_cores)
 
 
-def wp31benchmark(test_set: Path, plot_when: PlotWhen) -> None:
+def wp31benchmark(test_set: Path,
+                  plot_when: PlotWhen,
+                  nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3,
                   forbidden_leaves=[0, 1, 2],
-                  plot_when=plot_when)
+                  plot_when=plot_when,
+                  nr_of_cores=nr_of_cores)
 
 
-def wp32benchmark(test_set: Path, plot_when: PlotWhen) -> None:
+def wp32benchmark(test_set: Path,
+                  plot_when: PlotWhen,
+                  nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3,
                   forbidden_leaves=[0, 1, 2, 3],
-                  plot_when=plot_when)
+                  plot_when=plot_when,
+                  nr_of_cores=nr_of_cores)
 
 
-def wp341benchmark(test_set: Path, plot_when: PlotWhen) -> None:
+def wp341benchmark(test_set: Path,
+                   plot_when: PlotWhen,
+                   nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3_4,
                   forbidden_leaves=3,
-                  plot_when=plot_when)
+                  plot_when=plot_when,
+                  nr_of_cores=nr_of_cores)
 
 
-def wp342benchmark(test_set: Path, plot_when: PlotWhen) -> None:
+def wp342benchmark(test_set: Path,
+                   plot_when: PlotWhen,
+                   nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3_4,
                   forbidden_leaves=4,
-                  plot_when=plot_when)
+                  plot_when=plot_when,
+                  nr_of_cores=nr_of_cores)
