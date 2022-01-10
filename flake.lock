@@ -3,7 +3,7 @@
     "erdbeermet": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-JgwEy9/5kRLuj4pjKmnFaVD6Z8M8rc8DQSIk2e+ftkU=",
+        "narHash": "sha256-ANTIYSj5hviXilbzaIMmOr2ZmuNxMYCbPf3Ku/6+XFw=",
         "path": "./erdbeermet",
         "type": "path"
       },
