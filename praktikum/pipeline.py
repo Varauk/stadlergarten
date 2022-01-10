@@ -24,6 +24,7 @@ WORK_PACKAGE_3_4: Final = 34
 # TODO: Parallelisierung
 # TODO: Don't TelL StaDlEr!!11
 # TODO: Output blanks implementieren
+# TODO: Was passiert wenn wir kein gültiges Leaf erhalten?
 # Halbes TODO: Generation in pipeline überarbeiten
 # (size, clocklike und circular)
 
