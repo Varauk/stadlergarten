@@ -27,6 +27,7 @@ WORK_PACKAGE_3_4: Final = 34
 
 History = List[Tuple[int, int, int, float, float]]
 
+# TODO: Parameter Switch for Spike-Length calculation - differentiate between wp2 and wp4! Ist schon im RecognizeWrapper drin.
 # TODO: Last point of WP1 is left.
 # TODO: Parallelisierung
 # TODO: Don't TelL StaDlEr!!11
@@ -220,16 +221,17 @@ def recognizeWrapper(D: List[int],
                      print_info: bool = False,
                      measureDivergence: bool = False,
                      first_leaves: Optional[List[int]] = None,
-                     forbidden_leaves: Optional[List[int]] = None) -> Output:
+                     forbidden_leaves: Optional[List[int]] = None,
+                     use_spike_length: bool = False) -> Output:
     # Create our output object this also starts the timer
     output = Output()
 
     # Shall recognize skip forbidden leaves?
     if forbidden_leaves is not None:
         recognition_tree = recognize(D, first_candidate_only, print_info,
-                                     forbidden_leaves)
+                                     forbidden_leaves, use_spike_length=use_spike_length)
     else:
-        recognition_tree = recognize(D, first_candidate_only, print_info)
+        recognition_tree = recognize(D, first_candidate_only, print_info, use_spike_length=use_spike_length)
 
     # Check: Was the simulated Matrix an R-Map?
     if recognition_tree.root.valid_ways > 0:
@@ -240,15 +242,12 @@ def recognizeWrapper(D: List[int],
     else:
         if plot_when == PlotWhen.ON_ERR:
             recognition_tree.visualize()
-
         # set output values and return.
         output.classified_as_matching_four_leaves = False
         output.divergence_with_order = 1.0
         output.divergence_without_order = 1.0
         output.stop_timer()
         return output
-
-    # Reconstruction failed but PlotWhen.ON_ERR isn't plot_when
 
     if plot_when == PlotWhen.ALWAYS:
         recognition_tree.visualize()
