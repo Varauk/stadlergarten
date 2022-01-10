@@ -31,6 +31,7 @@
               scipy
               matplotlib
               tqdm
+              mypy
             ];
 
             doCheck = false;
