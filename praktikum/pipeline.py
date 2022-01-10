@@ -7,7 +7,7 @@ from erdbeermet.simulation import simulate, load
 from erdbeermet.recognition import recognize
 
 # Python packages
-from typing import Final, Optional, Union
+from typing import Final, Optional, Union, List, Tuple
 from timeit import default_timer as timer
 from logging import info
 import itertools
@@ -25,7 +25,7 @@ WORK_PACKAGE_2: Final = 2
 WORK_PACKAGE_3: Final = 3
 WORK_PACKAGE_3_4: Final = 34
 
-History = list[tuple[int, int, int, float, float]]
+History = List[Tuple[int, int, int, float, float]]
 
 # TODO: Last point of WP1 is left.
 # TODO: Parallelisierung
@@ -108,13 +108,13 @@ class Benchmark:
     '''This is just a benchmark function with some state attached.
        Used to allow the easy usage of multiprocessing.Pool'''
     work_package: int
-    forbidden_leaves: Union[list[int], int, None]
+    forbidden_leaves: Union[List[int], int, None]
     plot_when: PlotWhen
 
     def __init__(self,
                  plot_when: PlotWhen,
                  work_package: int,
-                 forbidden_leaves: Union[list[int], int, None]) -> None:
+                 forbidden_leaves: Union[List[int], int, None]) -> None:
         self.work_package = work_package
         self.forbidden_leaves = forbidden_leaves
         self.plot_when = plot_when
@@ -181,9 +181,9 @@ def pipeline(history: History,
              predefinedSimulationMatrix: None = None,
              measurePerformance: bool = False,
              measureDivergence: bool = False,
-             first_leaves: Optional[list[int]] = None,
+             first_leaves: Optional[List[int]] = None,
              first_candidate_only: bool = True,
-             forbidden_leaves: Optional[list[int]] = None,
+             forbidden_leaves: Optional[List[int]] = None,
              print_info: bool = False) -> Output:
     simulationMatrix = None
 
@@ -213,14 +213,14 @@ def pipeline(history: History,
     return output
 
 
-def recognizeWrapper(D: list[int],
+def recognizeWrapper(D: List[int],
                      history: History,
                      plot_when: PlotWhen,
                      first_candidate_only: bool = True,
                      print_info: bool = False,
                      measureDivergence: bool = False,
-                     first_leaves: Optional[list[int]] = None,
-                     forbidden_leaves: Optional[list[int]] = None) -> Output:
+                     first_leaves: Optional[List[int]] = None,
+                     forbidden_leaves: Optional[List[int]] = None) -> Output:
     # Create our output object this also starts the timer
     output = Output()
 
@@ -230,6 +230,30 @@ def recognizeWrapper(D: list[int],
                                      forbidden_leaves)
     else:
         recognition_tree = recognize(D, first_candidate_only, print_info)
+
+    # Check: Was the simulated Matrix an R-Map?
+    if recognition_tree.root.valid_ways > 0:
+        output.classified_as_r_map = True
+    # If not, Reconstruction failed and we should
+    # output 'plot distance matrices, recognition steps
+    # and final box plots of scenarios'
+    else:
+        if plot_when == PlotWhen.ON_ERR:
+            recognition_tree.visualize()
+
+        # set output values and return.
+        output.classified_as_matching_four_leaves = False
+        output.divergence_with_order = 1.0
+        output.divergence_without_order = 1.0
+        output.stop_timer()
+        return output
+
+    # Reconstruction failed but PlotWhen.ON_ERR isn't plot_when
+
+    if plot_when == PlotWhen.ALWAYS:
+        recognition_tree.visualize()
+
+    info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
 
     # Check: Match reconstructed leaves and orginal leaves?
     if first_leaves is not None:
@@ -296,7 +320,7 @@ def recognizeWrapper(D: list[int],
                 newTuple = (entry[1], entry[0], entry[2], round(1-entry[3], 6))
             else:
                 newTuple = (entry[0], entry[1], entry[2], round(entry[3], 6))
-
+                
             history_r_steps.append(newTuple)
 
         info(f'R-Steps from history:\n{str(history_r_steps)}')
@@ -321,25 +345,13 @@ def recognizeWrapper(D: list[int],
             info(f'Current divergence without order: {output.divergence_without_order}')
             info(f'Current divergence with order: {output.divergence_with_order}')
 
-    # Check: Was the simulated Matrix an R-Map?
-    if recognition_tree.root.valid_ways > 0:
-        output.classified_as_r_map = True
-    # If not, Reconstruction failed and we should
-    # TODO: output 'plot distance matrices, recognition steps
-    #       and final box plots of scenarios'
-    if plot_when == PlotWhen.ALWAYS or (
-       plot_when == PlotWhen.ON_ERR and not output.classified_as_r_map):
-        recognition_tree.visualize()
-
-    info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
-
     # Make sure to stop the output timer
     output.stop_timer()
     return output
 
 
-def expand_leaves(leaves: Union[list[int], int, None],
-                  count: int) -> list[list[int]]:
+def expand_leaves(leaves: Union[List[int], int, None],
+                  count: int) -> List[List[int]]:
     ''' Convert given leaves into a list of list of leaves
         This is mainly used for the expansion of forbidden_leaves
     '''
@@ -360,7 +372,7 @@ def expand_leaves(leaves: Union[list[int], int, None],
         return [[]]
 
 
-def expand_hists_file(filePaths: list[Path]) -> list[Path]:
+def expand_hists_file(filePaths: List[Path]) -> List[Path]:
     ''' Make sure the given filePaths are not just a single zip.
         If the given list is a single zip, we'll extract that
         and return a list of paths contained in the zip. '''
@@ -395,8 +407,8 @@ def benchmark_all(test_set: Path,
                   nr_of_cores: Optional[int],
                   plot_when: PlotWhen,
                   work_package: int = 2,
-                  first_leaves: list[int] = [0, 1, 2, 3],
-                  forbidden_leaves: Union[list[int], int, None] = None
+                  first_leaves: List[int] = [0, 1, 2, 3],
+                  forbidden_leaves: Union[List[int], int, None] = None
                   ) -> None:
     '''
     for every matrix which was generated: Load it, and use the
