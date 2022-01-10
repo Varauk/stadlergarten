@@ -38,14 +38,7 @@ WORK_PACKAGE_4_2: Final = 6
 
 History = List[Tuple[int, int, int, float, float]]
 
-# TODO: Does debug work?
-# TODO: What happens with firstLeafes = None in WP2?
-# TODO: Last point of WP1 is left.
-# TODO: Output blanks implementieren
-# TODO: Was passiert wenn wir kein gültiges Leaf erhalten?
-# Halbes TODO: Generation in pipeline überarbeiten
-# (size, clocklike und circular)
-
+# TODO: Debug doesn't work right now.
 
 class PlotWhen(Enum):
     NEVER = 'never'
@@ -163,8 +156,6 @@ class Benchmark:
                 useErdbeermetComputation = True
                 
             output = pipeline(size=scenario.N,
-                              clocklike=clocklike,
-                              circular=circular,
                               predefinedSimulationMatrix=scenario.D,
                               measureDivergence=True,
                               first_leaves=first_leaves,
@@ -206,8 +197,6 @@ class Benchmark:
 def pipeline(history: History,
              plot_when: PlotWhen,
              size: int = 10,
-             circular: bool = False,
-             clocklike: bool = False,
              predefinedSimulationMatrix: None = None,
              measureDivergence: bool = False,
              first_leaves: Optional[List[int]] = None,
@@ -218,6 +207,8 @@ def pipeline(history: History,
     simulationMatrix = None
 
     if (predefinedSimulationMatrix is None):
+        circular = random.choice((True, False))
+        clocklike = random.choice((True, False))
         # generate scenario
         scenario = simulate(size, circular=circular, clocklike=clocklike)
         simulationMatrix = scenario.D
@@ -256,7 +247,6 @@ def recognizeWrapper(D: List[int],
     # Create our output object this also starts the timer
     output = Output()
 
-
     # Shall recognize skip forbidden leaves?
     if forbidden_leaves is not None:
         recognition_tree = recognize(D, True, print_info,
@@ -289,11 +279,15 @@ def recognizeWrapper(D: List[int],
         recognition_tree.visualize()
 
     info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
-
     # Check: Match reconstructed leaves and orginal leaves?
     if first_leaves is not None:
         # build a set which contains all childs
         possible_node_set = []
+
+        # if we are in WP2, first_leaves is here still empty.
+        # but then the original leafs were 0,1,2,3
+        if first_leaves == []:
+            first_leaves = [0, 1, 2, 3]
 
         for current_node in recognition_tree.postorder():
             if current_node.n == 4 and current_node.valid_ways == 1:
@@ -341,7 +335,7 @@ def recognizeWrapper(D: List[int],
         history_r_steps = []
         offset_counter = 0
         for entry in history:
-            # Skip the first 3 entries since they
+            # Skip the first three entries since they
             # aren't in the reconstructed set.
             if offset_counter <= 2:
                 offset_counter += 1
@@ -461,7 +455,6 @@ def benchmark_all(test_set: Path,
 
     # TODO: Redirecting does not work for me..
     with logging_redirect_tqdm():
-        # For every file, use the pipeline ~ loop it baby, loop it!
         # Eww, my CPU get's so bored by this ~ USE THE DAMN CORES!
         benchmark = Benchmark(work_package=work_package,
                               forbidden_leaves=forbidden_leaves,
