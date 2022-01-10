@@ -386,7 +386,7 @@ def expand_hists_file(filePaths: List[Path]) -> List[Path]:
         return filePaths
 
     # There is only one zip file, let's handle that
-    zip = filePaths[0]
+    zip = zip_files[0]
     # Extract into `original/path/to/file.zip.d/`
     extract_dir = zip.parent / (zip.name + '.d')
     # Have we extracted this file already?
