@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 import logging
 from typing import Final, List
 from pathlib import Path
+from timeit import default_timer as timer
 
 import pipeline
 from pipeline import PlotWhen
@@ -21,7 +22,7 @@ def test_set_choices() -> List[str]:
 def main() -> None:
     parser = ArgumentParser(description='Graph Theory Pipeline')
     parser.add_argument('--workpackage', '-p',
-                        choices=['2', '31', '32', '331', '332', '41', '42'],
+                        choices=['2', '31', '32', '331', '332', '41', '42', 'all'],
                         required=True,
                         help='Select work package to execute')
     parser.add_argument('--debug', '-d', action='store_true')
@@ -65,6 +66,20 @@ def main() -> None:
         pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
     elif args.workpackage == '42':
         pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
+    elif args.workpackage == 'all':
+        startTime = timer()
+        # TODO add possibility to save the results to text files? Maybe make the functions return the BenchmarkStatistics object?
+        pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
+        pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
+        pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
+        pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
+        pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
+        pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
+        pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
+        endTime = timer()
+        overallRuntime = endTime - startTime
+        print(f'Finished running all workpackage simulations on set ' + args.test_set + ' (took {overallRuntime :.2f} seconds)')
+
 
 if __name__ == '__main__':
     main()
