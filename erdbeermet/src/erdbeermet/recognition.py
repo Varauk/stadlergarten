@@ -332,7 +332,7 @@ def _finalize_tree(recognition_tree):
     _sort_children(recognition_tree.root)
 
 
-def recognize(D, first_candidate_only=False, print_info=False, B=None, use_erdbeermet_computation=False):
+def recognize(D, first_candidate_only=False, print_info=False, B=None, use_spike_length=False, use_erdbeermet_computation=False):
     """Recognition of type R matrices.
 
     Parameters
@@ -388,7 +388,7 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None, use_erdbe
             candidates = _find_candidates(D, V, print_info, B)
 
             # Spikelength-wise reordering of candidates
-            if len(candidates) > 1:
+            if use_spike_length and len(candidates) > 1:
                 candidates = reorderBySpikelength(candidates=candidates, V=V, D=D, use_erdbeermet_computation=use_erdbeermet_computation)
 
             # Continue algorithm
