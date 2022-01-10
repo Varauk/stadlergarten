@@ -19,12 +19,10 @@
         pkgs = import nixpkgs { inherit system; };
 
         erdbeermetPkg =
-          { lib, python3, fetchFromGitHub, src ? inputs.erdbeermet }:
+          { lib, python3, fetchFromGitHub, src, version }:
           python3.pkgs.buildPythonPackage {
             pname = "erdbeermet";
-            version = "local";
-
-            src = inputs.erdbeermet;
+            inherit version src;
 
             propagatedBuildInputs = with python3.pkgs; [
               numpy
@@ -37,10 +35,14 @@
             doCheck = false;
           };
 
-        erdbeermet = pkgs.callPackage erdbeermetPkg { };
+        erdbeermet = pkgs.callPackage erdbeermetPkg {
+          src = inputs.erdbeermet;
+          version = "local";
+        };
 
         erdbeermetUpstream = pkgs.callPackage erdbeermetPkg {
           src = inputs.erdbeermetUpstream;
+          version = "upstream";
         };
 
       in {

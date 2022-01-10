@@ -319,7 +319,7 @@ def recognizeWrapper(D: List[int],
                 newTuple = (entry[1], entry[0], entry[2], round(1-entry[3], 6))
             else:
                 newTuple = (entry[0], entry[1], entry[2], round(entry[3], 6))
-                
+
             history_r_steps.append(newTuple)
 
         info(f'R-Steps from history:\n{str(history_r_steps)}')
@@ -433,7 +433,8 @@ def benchmark_all(test_set: Path,
         # Construct our statistics on all cores
         statistics_iter = process_map(benchmark,
                                       filePaths,
-                                      max_workers=nr_of_cores)
+                                      max_workers=nr_of_cores,
+                                      chunksize=1)
         # Reduce all the statistics into a single one and print that
         final_statistic = reduce(BenchmarkStatistics.add, statistics_iter)
         final_statistic.pretty_print(number_of_scenarios, work_package)
