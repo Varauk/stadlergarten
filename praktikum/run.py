@@ -21,7 +21,7 @@ def test_set_choices() -> List[str]:
 def main() -> None:
     parser = ArgumentParser(description='Graph Theory Pipeline')
     parser.add_argument('--workpackage', '-p',
-                        choices=['2', '31', '32', '331', '332', '4'],
+                        choices=['2', '31', '32', '331', '332', '41', '42'],
                         required=True,
                         help='Select work package to execute')
     parser.add_argument('--debug', '-d', action='store_true')
@@ -61,9 +61,10 @@ def main() -> None:
         pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
     elif args.workpackage == '332':
         pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
-    elif args.workpackage == '4':
-        pipeline.wp4benchmark(test_set, plot_when, nr_of_cores)
-
+    elif args.workpackage == '41':
+        pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
+    elif args.workpackage == '42':
+        pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
 
 if __name__ == '__main__':
     main()

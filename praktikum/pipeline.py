@@ -31,8 +31,10 @@ WORK_PACKAGE_3_2: Final = 2
 WORK_PACKAGE_3_3_1: Final = 3
 # Benchmark with subsets of four blocked leafes
 WORK_PACKAGE_3_3_2: Final = 4
-# Benchmark like WP2 with smallest spikes
-WORK_PACKAGE_4: Final = 5
+# Benchmark like WP2 with smallest spikes and our calculation
+WORK_PACKAGE_4_1: Final = 5
+# Benchmark like WP2 with smallest spikes and erdbeermet calculation
+WORK_PACKAGE_4_2: Final = 6
 
 History = List[Tuple[int, int, int, float, float]]
 
@@ -151,11 +153,15 @@ class Benchmark:
                 # by the recognition algorithm.
                 first_leaves = combination
 
-            # Enable Spike-Length Calculation
+            # Enable Spike-Length Calculation and corresponding calculation form
             useSpikes = False
-            if self.work_package == WORK_PACKAGE_4:
+            useErdbeermetComputation = False
+            if self.work_package == WORK_PACKAGE_4_1:
                 useSpikes = True
-
+            elif self.work_package == WORK_PACKAGE_4_2:
+                useSpikes = True
+                useErdbeermetComputation = True
+                
             output = pipeline(size=scenario.N,
                               clocklike=clocklike,
                               circular=circular,
@@ -165,7 +171,8 @@ class Benchmark:
                               history=scenario.history,
                               plot_when=self.plot_when,
                               forbidden_leaves=combination,
-                              use_spike_length=useSpikes)
+                              use_spike_length=useSpikes,
+                              use_erdbeermet_computation=useErdbeermetComputation)
 
 
             # WP3 is special. We iterate through different combinations.
@@ -206,7 +213,8 @@ def pipeline(history: History,
              first_leaves: Optional[List[int]] = None,
              forbidden_leaves: Optional[List[int]] = None,
              print_info: bool = False,
-             use_spike_length: bool = False) -> Output:
+             use_spike_length: bool = False,
+             use_erdbeermet_computation: bool = False) -> Output:
     simulationMatrix = None
 
     if (predefinedSimulationMatrix is None):
@@ -227,7 +235,8 @@ def pipeline(history: History,
             history=history,
             first_leaves=first_leaves,
             forbidden_leaves=forbidden_leaves,
-            use_spike_length=use_spike_length)
+            use_spike_length=use_spike_length,
+            use_erdbeermet_computation=use_erdbeermet_computation)
 
     # print single outputs if debug is enabled
     info(output)
@@ -242,18 +251,22 @@ def recognizeWrapper(D: List[int],
                      measureDivergence: bool = False,
                      first_leaves: Optional[List[int]] = None,
                      forbidden_leaves: Optional[List[int]] = None,
-                     use_spike_length: bool = False) -> Output:
+                     use_spike_length: bool = False,
+                     use_erdbeermet_computation: bool = False) -> Output:
     # Create our output object this also starts the timer
     output = Output()
+
 
     # Shall recognize skip forbidden leaves?
     if forbidden_leaves is not None:
         recognition_tree = recognize(D, True, print_info,
                                      forbidden_leaves,
-                                     use_spike_length=use_spike_length)
+                                     use_spike_length=use_spike_length,
+                                     use_erdbeermet_computation=use_erdbeermet_computation)
     else:
         recognition_tree = recognize(D, True, print_info,
-                                     use_spike_length=use_spike_length)
+                                     use_spike_length=use_spike_length,
+                                     use_erdbeermet_computation=use_erdbeermet_computation)
 
     # Check: Was the simulated Matrix an R-Map?
     if recognition_tree.root.valid_ways > 0:
@@ -323,7 +336,6 @@ def recognizeWrapper(D: List[int],
 
         new_list = sorted(reconstructed_r_steps, key=lambda item: item[2])
         info(f'R-Steps from reconstruction:\n{str(new_list)}')
-        print(f'R-Steps from reconstruction:\n{str(new_list)}')
         # Now we need to check the reconstructed r-steps against
         # the original ones. Extract r-steps from history
         history_r_steps = []
@@ -513,10 +525,19 @@ def wp332benchmark(test_set: Path,
                   nr_of_cores=nr_of_cores)
 
 
-def wp4benchmark(test_set: Path,
+def wp41benchmark(test_set: Path,
                  plot_when: PlotWhen,
                  nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_4,
+                  work_package=WORK_PACKAGE_4_1,
+                  plot_when=plot_when,
+                  nr_of_cores=nr_of_cores)
+    
+    
+def wp42benchmark(test_set: Path,
+                 plot_when: PlotWhen,
+                 nr_of_cores: Optional[int]) -> None:
+    benchmark_all(test_set,
+                  work_package=WORK_PACKAGE_4_2,
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)
