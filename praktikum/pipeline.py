@@ -21,16 +21,24 @@ import zipfile
 from output import Output
 
 # Constants
-WORK_PACKAGE_2: Final = 2
-WORK_PACKAGE_3: Final = 3
-WORK_PACKAGE_3_4: Final = 34
+# Benchmark of original algorithm
+WORK_PACKAGE_2: Final = 0
+# Benchmark with three specified blocked leafes
+WORK_PACKAGE_3_1: Final = 1
+# Benchmark with four specified blocked leafes
+WORK_PACKAGE_3_2: Final = 2
+# Benchmark with subsets of three blocked leafes
+WORK_PACKAGE_3_3_1: Final = 3
+# Benchmark with subsets of four blocked leafes
+WORK_PACKAGE_3_3_2: Final = 4
+# Benchmark like WP2 with smallest spikes
+WORK_PACKAGE_4: Final = 5
 
 History = List[Tuple[int, int, int, float, float]]
 
-# TODO: Parameter Switch for Spike-Length calculation - differentiate between wp2 and wp4! Ist schon im RecognizeWrapper drin.
+# TODO: Does debug work?
+# TODO: What happens with firstLeafes = None in WP2?
 # TODO: Last point of WP1 is left.
-# TODO: Parallelisierung
-# TODO: Don't TelL StaDlEr!!11
 # TODO: Output blanks implementieren
 # TODO: Was passiert wenn wir kein gültiges Leaf erhalten?
 # Halbes TODO: Generation in pipeline überarbeiten
@@ -142,32 +150,46 @@ class Benchmark:
                 # are forbidden and therefore can't be deleted
                 # by the recognition algorithm.
                 first_leaves = combination
-            # use the pipeline to create our output object
+
+            # Enable Spike-Length Calculation
+            useSpikes = False
+            if self.work_package == WORK_PACKAGE_4:
+                useSpikes = True
+
             output = pipeline(size=scenario.N,
                               clocklike=clocklike,
                               circular=circular,
                               predefinedSimulationMatrix=scenario.D,
-                              measurePerformance=True,
                               measureDivergence=True,
                               first_leaves=first_leaves,
-                              first_candidate_only=True,
                               history=scenario.history,
                               plot_when=self.plot_when,
-                              forbidden_leaves=combination)
+                              forbidden_leaves=combination,
+                              use_spike_length=useSpikes)
+
+
+            # WP3 is special. We iterate through different combinations.
+            # But only a successful combination is interesting in terms of
+            # R-Steps. 
+            if not output.classified_as_r_map and (self.work_package == WORK_PACKAGE_3_3_1 or self.work_package == WORK_PACKAGE_3_3_2):
+                # Here we have a combination which was NOT valid. 
+                # so the R-steps are not interesting and we should
+                # not count them into divergence.
+                continue
+            else:           
             # Use the values of the current Output Object
             # to modify overall values of benchmark
-            if (output.classified_as_r_map):
-                stats.numberOfRMaps += 1
-            if (output.classified_as_matching_four_leaves):
-                stats.numberOfMatchingFourLeafs += 1
-            stats.sumOfDivergenceWithOrder += output.divergence_with_order
-            stats.sumOfDivergenceWithoutOrder += output.divergence_without_order
-
-            # WP3 Stichpunkt vier.
-            # TODO: What was this about again?
-            if (self.work_package == WORK_PACKAGE_3_4
-               and output.classified_as_r_map):
-                break
+                if (output.classified_as_r_map):
+                    stats.numberOfRMaps += 1
+                if (output.classified_as_matching_four_leaves):
+                    stats.numberOfMatchingFourLeafs += 1
+                stats.sumOfDivergenceWithOrder += output.divergence_with_order
+                stats.sumOfDivergenceWithoutOrder += output.divergence_without_order
+                
+                # When we are in WP3, we are finished with the first
+                # valid R-Map, so break the loop here.
+                if (self.work_package == WORK_PACKAGE_3_3_1 or self.work_package == WORK_PACKAGE_3_3_2):
+                    break
 
         # Stop the timer and return the results
         stats.stop_timer()
@@ -180,12 +202,11 @@ def pipeline(history: History,
              circular: bool = False,
              clocklike: bool = False,
              predefinedSimulationMatrix: None = None,
-             measurePerformance: bool = False,
              measureDivergence: bool = False,
              first_leaves: Optional[List[int]] = None,
-             first_candidate_only: bool = True,
              forbidden_leaves: Optional[List[int]] = None,
-             print_info: bool = False) -> Output:
+             print_info: bool = False,
+             use_spike_length: bool = False) -> Output:
     simulationMatrix = None
 
     if (predefinedSimulationMatrix is None):
@@ -201,12 +222,12 @@ def pipeline(history: History,
     output = recognizeWrapper(
             simulationMatrix,
             plot_when=plot_when,
-            first_candidate_only=first_candidate_only,
             print_info=print_info,
             measureDivergence=measureDivergence,
             history=history,
             first_leaves=first_leaves,
-            forbidden_leaves=forbidden_leaves)
+            forbidden_leaves=forbidden_leaves,
+            use_spike_length=use_spike_length)
 
     # print single outputs if debug is enabled
     info(output)
@@ -217,7 +238,6 @@ def pipeline(history: History,
 def recognizeWrapper(D: List[int],
                      history: History,
                      plot_when: PlotWhen,
-                     first_candidate_only: bool = True,
                      print_info: bool = False,
                      measureDivergence: bool = False,
                      first_leaves: Optional[List[int]] = None,
@@ -228,14 +248,17 @@ def recognizeWrapper(D: List[int],
 
     # Shall recognize skip forbidden leaves?
     if forbidden_leaves is not None:
-        recognition_tree = recognize(D, first_candidate_only, print_info,
-                                     forbidden_leaves, use_spike_length=use_spike_length)
+        recognition_tree = recognize(D, True, print_info,
+                                     forbidden_leaves,
+                                     use_spike_length=use_spike_length)
     else:
-        recognition_tree = recognize(D, first_candidate_only, print_info, use_spike_length=use_spike_length)
+        recognition_tree = recognize(D, True, print_info,
+                                     use_spike_length=use_spike_length)
 
     # Check: Was the simulated Matrix an R-Map?
     if recognition_tree.root.valid_ways > 0:
         output.classified_as_r_map = True
+
     # If not, Reconstruction failed and we should
     # output 'plot distance matrices, recognition steps
     # and final box plots of scenarios'
@@ -265,7 +288,7 @@ def recognizeWrapper(D: List[int],
 
         # Choose random one of the nodes as stated in WP2
         choosen_node = random.choice(possible_node_set)
-        info(f'Randomly choosen last node: {choosen_node.V}')
+        info(f'Randomly choosen last node: {choosen_node.V} | Corresponding first leafes: {first_leaves}')
         # Check current list of chosen_node against passLeafes-list
         if set(first_leaves).issubset(set(choosen_node.V)):
             output.classified_as_matching_four_leaves = True
@@ -300,6 +323,7 @@ def recognizeWrapper(D: List[int],
 
         new_list = sorted(reconstructed_r_steps, key=lambda item: item[2])
         info(f'R-Steps from reconstruction:\n{str(new_list)}')
+        print(f'R-Steps from reconstruction:\n{str(new_list)}')
         # Now we need to check the reconstructed r-steps against
         # the original ones. Extract r-steps from history
         history_r_steps = []
@@ -453,7 +477,7 @@ def wp31benchmark(test_set: Path,
                   plot_when: PlotWhen,
                   nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_3,
+                  work_package=WORK_PACKAGE_3_1,
                   forbidden_leaves=[0, 1, 2],
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)
@@ -463,27 +487,36 @@ def wp32benchmark(test_set: Path,
                   plot_when: PlotWhen,
                   nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_3,
+                  work_package=WORK_PACKAGE_3_2,
                   forbidden_leaves=[0, 1, 2, 3],
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)
 
 
-def wp341benchmark(test_set: Path,
+def wp331benchmark(test_set: Path,
                    plot_when: PlotWhen,
                    nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_3_4,
+                  work_package=WORK_PACKAGE_3_3_1,
                   forbidden_leaves=3,
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)
 
 
-def wp342benchmark(test_set: Path,
+def wp332benchmark(test_set: Path,
                    plot_when: PlotWhen,
                    nr_of_cores: Optional[int]) -> None:
     benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_3_4,
+                  work_package=WORK_PACKAGE_3_3_2,
                   forbidden_leaves=4,
+                  plot_when=plot_when,
+                  nr_of_cores=nr_of_cores)
+
+
+def wp4benchmark(test_set: Path,
+                 plot_when: PlotWhen,
+                 nr_of_cores: Optional[int]) -> None:
+    benchmark_all(test_set,
+                  work_package=WORK_PACKAGE_4,
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)

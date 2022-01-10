@@ -2,7 +2,7 @@
 
 from argparse import ArgumentParser
 import logging
-from typing import Final
+from typing import Final, List
 from pathlib import Path
 
 import pipeline
@@ -11,7 +11,7 @@ from pipeline import PlotWhen
 TEST_SET_DIR: Final[Path] = Path('../test-matrices/')
 
 
-def test_set_choices() -> list[str]:
+def test_set_choices() -> List[str]:
     possible_files = TEST_SET_DIR.glob('*')
     directories = filter(Path.is_dir, possible_files)
     dir_names = [dir.name for dir in directories]
@@ -21,7 +21,7 @@ def test_set_choices() -> list[str]:
 def main() -> None:
     parser = ArgumentParser(description='Graph Theory Pipeline')
     parser.add_argument('--workpackage', '-p',
-                        choices=['2', '31', '32', '341', '342'],
+                        choices=['2', '31', '32', '331', '332', '4'],
                         required=True,
                         help='Select work package to execute')
     parser.add_argument('--debug', '-d', action='store_true')
@@ -57,10 +57,12 @@ def main() -> None:
         pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
     elif args.workpackage == '32':
         pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
-    elif args.workpackage == '341':
-        pipeline.wp341benchmark(test_set, plot_when, nr_of_cores)
-    elif args.workpackage == '342':
-        pipeline.wp342benchmark(test_set, plot_when, nr_of_cores)
+    elif args.workpackage == '331':
+        pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
+    elif args.workpackage == '332':
+        pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
+    elif args.workpackage == '4':
+        pipeline.wp4benchmark(test_set, plot_when, nr_of_cores)
 
 
 if __name__ == '__main__':
