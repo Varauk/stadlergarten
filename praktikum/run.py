@@ -8,7 +8,9 @@ from timeit import default_timer as timer
 from datetime import datetime
 
 import pipeline
-from pipeline import PlotWhen
+from pipeline import benchmark_all, BenchmarkStatistics
+from workpackage import WorkPackage
+from plotwhen import PlotWhen
 
 TEST_SET_DIR: Final[Path] = Path('../test-matrices/')
 
@@ -51,71 +53,47 @@ def setup_logging(enable_debug: bool) -> None:
     logging.basicConfig(filename=logfile, encoding='utf-8', level=level)
 
 
-def execute_workpackages(wp: str,
+def execute_workpackage(wp: WorkPackage,
+                        test_set: Path,
+                        nr_of_cores: Optional[int],
+                        plot_when: PlotWhen) -> BenchmarkStatistics:
+    return benchmark_all(test_set=test_set,
+                         work_package=wp,
+                         plot_when=plot_when,
+                         forbidden_leaves=wp.get_forbidden_leaves(),
+                         nr_of_cores=nr_of_cores)
+
+
+def execute_workpackages(workpackages: list[WorkPackage],
                          test_set: Path,
                          plot_when: PlotWhen,
                          nr_of_cores: Optional[int],
                          write_results: bool) -> None:
-    if wp == '2':
-        statisticwp2 = pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
-        if (write_results):
-            statisticwp2.writeToFile('2')
-    elif wp == '31':
-        statisticwp31 = pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
-        if (write_results):
-            statisticwp31.writeToFile('2')
-    elif wp == '32':
-        statisticwp32 = pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
-        if (write_results):
-            statisticwp32.writeToFile('2')
-    elif wp == '331':
-        statisticwp331 = pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
-        if (write_results):
-            statisticwp331.writeToFile('2')
-    elif wp == '332':
-        statisticwp332 = pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
-        if (write_results):
-            statisticwp332.writeToFile('2')
-    elif wp == '41':
-        statisticwp41 = pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
-        if (write_results):
-            statisticwp41.writeToFile('2')
-    elif wp == '42':
-        statisticwp42 = pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
-        if (write_results):
-            statisticwp42.writeToFile('2')
-    elif wp == 'all':
-        startTime = timer()
-        # TODO add possibility to save the results to text files?
-        # Maybe make the functions return the BenchmarkStatistics object?
-        statisticwp2 = pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
-        statisticwp31 = pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
-        statisticwp32 = pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
-        statisticwp331 = pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
-        statisticwp332 = pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
-        statisticwp41 = pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
-        statisticwp42 = pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
-
-        endTime = timer()
-        overallRuntime = endTime - startTime
-
+    '''Executes all of the given workpackages.
+       Results will be written, if so desired.'''
+    # If we have more than one workpackage,
+    # do Stefan's timer thing
+    if len(workpackages) > 1:
+        start_time = timer()
+    # Run every workpackage
+    for wp in workpackages:
+        statistics = execute_workpackage(wp=wp,
+                                         test_set=test_set,
+                                         plot_when=plot_when,
+                                         nr_of_cores=nr_of_cores)
+        # If requested, save the results
+        if write_results:
+            statistics.writeToFile(wp)
+    # If there was more than one, evaluate the timing
+    if len(workpackages) > 1:
+        end_time = timer()
+        total_runtime = end_time - start_time
         print(
             'Finished running all workpackage simulations on set '
             + str(test_set)
             + ' (took '
-            + pipeline.pretty_time(overallRuntime) + ')'
+            + pipeline.pretty_time(total_runtime) + ')'
         )
-
-        if (write_results):
-            print('Writing output to files...')
-            statisticwp2.writeToFile('2')
-            statisticwp31.writeToFile('31')
-            statisticwp32.writeToFile('32')
-            statisticwp331.writeToFile('331')
-            statisticwp332.writeToFile('332')
-            statisticwp41.writeToFile('41')
-            statisticwp42.writeToFile('42')
-            print('Done!')
 
 
 def main() -> None:
@@ -129,8 +107,11 @@ def main() -> None:
     plot_when = PlotWhen(args.plot_when)
     # Number of cores to use, `None` will just use all
     nr_of_cores = int(args.cores) if args.cores is not None else None
+    # Parse the given workpackage string into
+    # a list of workpackages to execute
+    workpackages = WorkPackage.from_cli_arg(args.workpackage)
     # Execute selected workpackage
-    execute_workpackages(wp=args.workpackage,
+    execute_workpackages(workpackages=workpackages,
                          test_set=test_set,
                          plot_when=plot_when,
                          nr_of_cores=nr_of_cores,

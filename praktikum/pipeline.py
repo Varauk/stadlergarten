@@ -6,44 +6,23 @@ from erdbeermet.simulation import simulate, load
 from erdbeermet.recognition import recognize
 
 # Python packages
-from typing import Final, Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple
 from timeit import default_timer as timer
 from logging import info
 import itertools
 import random
 from pathlib import Path
 from functools import reduce
-from enum import Enum
 import zipfile
 import os
 from datetime import datetime
 
 # Own classes
 from output import Output
-
-# Constants
-# Benchmark of original algorithm
-WORK_PACKAGE_2: Final = 0
-# Benchmark with three specified blocked leafes
-WORK_PACKAGE_3_1: Final = 1
-# Benchmark with four specified blocked leafes
-WORK_PACKAGE_3_2: Final = 2
-# Benchmark with subsets of three blocked leafes
-WORK_PACKAGE_3_3_1: Final = 3
-# Benchmark with subsets of four blocked leafes
-WORK_PACKAGE_3_3_2: Final = 4
-# Benchmark like WP2 with smallest spikes and our calculation
-WORK_PACKAGE_4_1: Final = 5
-# Benchmark like WP2 with smallest spikes and erdbeermet calculation
-WORK_PACKAGE_4_2: Final = 6
+from workpackage import WorkPackage
+from plotwhen import PlotWhen
 
 History = List[Tuple[int, int, int, float, float]]
-
-
-class PlotWhen(Enum):
-    NEVER = 'never'
-    ON_ERR = 'on-err'
-    ALWAYS = 'always'
 
 
 class BenchmarkStatistics:
@@ -114,7 +93,7 @@ class BenchmarkStatistics:
   +------------------------------------------+
         ''')
 
-    def writeToFile(self, work_package: int) -> None:
+    def writeToFile(self, work_package: WorkPackage) -> None:
         os.makedirs('benchmarkOutput', exist_ok=True)
         filename = Path('benchmarkOutput') / Path('benchmark_wp' + str(work_package) + '.txt')
         with open(filename, 'w') as f:
@@ -130,13 +109,13 @@ class BenchmarkStatistics:
 class Benchmark:
     '''This is just a benchmark function with some state attached.
        Used to allow the easy usage of multiprocessing.Pool'''
-    work_package: int
+    work_package: WorkPackage
     forbidden_leaves: Union[List[int], int, None]
     plot_when: PlotWhen
 
     def __init__(self,
                  plot_when: PlotWhen,
-                 work_package: int,
+                 work_package: WorkPackage,
                  forbidden_leaves: Union[List[int], int, None]) -> None:
         self.work_package = work_package
         self.forbidden_leaves = forbidden_leaves
@@ -168,9 +147,9 @@ class Benchmark:
             # Enable Spike-Length Calculation and corresponding calculation form
             useSpikes = False
             useErdbeermetComputation = False
-            if self.work_package == WORK_PACKAGE_4_1:
+            if self.work_package == WorkPackage.WP4_1:
                 useSpikes = True
-            elif self.work_package == WORK_PACKAGE_4_2:
+            elif self.work_package == WorkPackage.WP4_2:
                 useSpikes = True
                 useErdbeermetComputation = True
                 
@@ -184,18 +163,19 @@ class Benchmark:
                               use_spike_length=useSpikes,
                               use_erdbeermet_computation=useErdbeermetComputation)
 
-
             # WP3 is special. We iterate through different combinations.
             # But only a successful combination is interesting in terms of
             # R-Steps. 
-            if not output.classified_as_r_map and (self.work_package == WORK_PACKAGE_3_3_1 or self.work_package == WORK_PACKAGE_3_3_2):
+            if (not output.classified_as_r_map
+                and (self.work_package == WorkPackage.WP3_3_1
+                     or self.work_package == WorkPackage.WP3_3_2)):
                 # Here we have a combination which was NOT valid. 
                 # so the R-steps are not interesting and we should
                 # not count them into divergence.
                 continue
             else:           
-            # Use the values of the current Output Object
-            # to modify overall values of benchmark
+                # Use the values of the current Output Object
+                # to modify overall values of benchmark
                 if (output.classified_as_r_map):
                     stats.numberOfRMaps += 1
                 if (output.classified_as_matching_four_leaves):
@@ -205,7 +185,8 @@ class Benchmark:
                 
                 # When we are in WP3, we are finished with the first
                 # valid R-Map, so break the loop here.
-                if (self.work_package == WORK_PACKAGE_3_3_1 or self.work_package == WORK_PACKAGE_3_3_2):
+                if (self.work_package == WorkPackage.WP3_3_1
+                   or self.work_package == WorkPackage.WP3_3_2):
                     break
 
         # Stop the timer and return the results
@@ -451,7 +432,7 @@ def expand_hists_file(filePaths: List[Path]) -> List[Path]:
 def benchmark_all(test_set: Path,
                   nr_of_cores: Optional[int],
                   plot_when: PlotWhen,
-                  work_package: int = 2,
+                  work_package: WorkPackage,
                   first_leaves: List[int] = [0, 1, 2, 3],
                   forbidden_leaves: Union[List[int], int, None] = None
                   ) -> BenchmarkStatistics:
@@ -482,73 +463,6 @@ def benchmark_all(test_set: Path,
     final_statistic = reduce(BenchmarkStatistics.add, statistics_iter)
     final_statistic.pretty_print(number_of_scenarios, work_package)
     return final_statistic
-
-
-def wp2benchmark(test_set: Path,
-                 plot_when: PlotWhen,
-                 nr_of_cores: Optional[int]) -> BenchmarkStatistics:
-    return benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_2,
-                  plot_when=plot_when,
-                  nr_of_cores=nr_of_cores)
-
-
-def wp31benchmark(test_set: Path,
-                  plot_when: PlotWhen,
-                  nr_of_cores: Optional[int]) -> BenchmarkStatistics:
-    return benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_3_1,
-                  forbidden_leaves=[0, 1, 2],
-                  plot_when=plot_when,
-                  nr_of_cores=nr_of_cores)
-
-
-def wp32benchmark(test_set: Path,
-                  plot_when: PlotWhen,
-                  nr_of_cores: Optional[int]) -> BenchmarkStatistics:
-    return benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_3_2,
-                  forbidden_leaves=[0, 1, 2, 3],
-                  plot_when=plot_when,
-                  nr_of_cores=nr_of_cores)
-
-
-def wp331benchmark(test_set: Path,
-                   plot_when: PlotWhen,
-                   nr_of_cores: Optional[int]) -> BenchmarkStatistics:
-    return benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_3_3_1,
-                  forbidden_leaves=3,
-                  plot_when=plot_when,
-                  nr_of_cores=nr_of_cores)
-
-
-def wp332benchmark(test_set: Path,
-                   plot_when: PlotWhen,
-                   nr_of_cores: Optional[int]) -> BenchmarkStatistics:
-    return benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_3_3_2,
-                  forbidden_leaves=4,
-                  plot_when=plot_when,
-                  nr_of_cores=nr_of_cores)
-
-
-def wp41benchmark(test_set: Path,
-                 plot_when: PlotWhen,
-                 nr_of_cores: Optional[int]) -> BenchmarkStatistics:
-    return benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_4_1,
-                  plot_when=plot_when,
-                  nr_of_cores=nr_of_cores)
-
-
-def wp42benchmark(test_set: Path,
-                 plot_when: PlotWhen,
-                 nr_of_cores: Optional[int]) -> BenchmarkStatistics:
-    return benchmark_all(test_set,
-                  work_package=WORK_PACKAGE_4_2,
-                  plot_when=plot_when,
-                  nr_of_cores=nr_of_cores)
 
 
 # TODO apply this to BenchmarkStatistics.pretty_print too?
