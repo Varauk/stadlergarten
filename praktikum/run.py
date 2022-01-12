@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 import logging
-from typing import Final, List
+from typing import Final, List, Optional
 from pathlib import Path
 from timeit import default_timer as timer
 from datetime import datetime
@@ -20,19 +20,11 @@ def test_set_choices() -> List[str]:
     return list(dir_names)
 
 
-def setup_logging(enable_debug: bool) -> None:
-    '''Setup logger and enable `info` output if requested'''
-    level = logging.INFO if enable_debug else logging.WARN
-    log_folder = Path('logs')
-    log_folder.mkdir(exist_ok=True)
-    logfile = log_folder / Path(str(datetime.now()) + '.log')
-    logging.basicConfig(filename=logfile, encoding='utf-8', level=level)
-
-
-def main() -> None:
+def parse_cli_arguments() -> Namespace:
     parser = ArgumentParser(description='Graph Theory Pipeline')
     parser.add_argument('--workpackage', '-p',
-                        choices=['2', '31', '32', '331', '332', '41', '42', 'all'],
+                        choices=['2', '31', '32', '331',
+                                 '332', '41', '42', 'all'],
                         required=True,
                         help='Select work package to execute')
     parser.add_argument('--debug', '-d', action='store_true')
@@ -47,51 +39,55 @@ def main() -> None:
                         help='Number of cores to use',
                         default=None)
     parser.add_argument('--writeResultsToFiles', '-w', action='store_true')
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    setup_logging(args.debug)
 
-    # Select test set directory
-    test_set = TEST_SET_DIR/args.test_set
-    # Plot when?
-    # Parse the raw value into an enum variant. This should be safe,
-    # since argparse makes sure only allowed choices appear here
-    plot_when = PlotWhen(args.plot_when)
-    # Number of cores to use, `None` will just use all
-    nr_of_cores = int(args.cores) if args.cores is not None else None
+def setup_logging(enable_debug: bool) -> None:
+    '''Setup logger and enable `info` output if requested'''
+    level = logging.INFO if enable_debug else logging.WARN
+    log_folder = Path('logs')
+    log_folder.mkdir(exist_ok=True)
+    logfile = log_folder / Path(str(datetime.now()) + '.log')
+    logging.basicConfig(filename=logfile, encoding='utf-8', level=level)
 
-    # Execute selected workpackage
-    if args.workpackage == '2':
+
+def execute_workpackages(wp: str,
+                         test_set: Path,
+                         plot_when: PlotWhen,
+                         nr_of_cores: Optional[int],
+                         write_results: bool) -> None:
+    if wp == '2':
         statisticwp2 = pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
-        if (args.writeResultsToFiles) :
+        if (write_results):
             statisticwp2.writeToFile('2')
-    elif args.workpackage == '31':
+    elif wp == '31':
         statisticwp31 = pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
-        if (args.writeResultsToFiles) :
+        if (write_results):
             statisticwp31.writeToFile('2')
-    elif args.workpackage == '32':
+    elif wp == '32':
         statisticwp32 = pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
-        if (args.writeResultsToFiles) :
+        if (write_results):
             statisticwp32.writeToFile('2')
-    elif args.workpackage == '331':
+    elif wp == '331':
         statisticwp331 = pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
-        if (args.writeResultsToFiles) :
+        if (write_results):
             statisticwp331.writeToFile('2')
-    elif args.workpackage == '332':
+    elif wp == '332':
         statisticwp332 = pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
-        if (args.writeResultsToFiles) :
+        if (write_results):
             statisticwp332.writeToFile('2')
-    elif args.workpackage == '41':
+    elif wp == '41':
         statisticwp41 = pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
-        if (args.writeResultsToFiles) :
+        if (write_results):
             statisticwp41.writeToFile('2')
-    elif args.workpackage == '42':
+    elif wp == '42':
         statisticwp42 = pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
-        if (args.writeResultsToFiles) :
+        if (write_results):
             statisticwp42.writeToFile('2')
-    elif args.workpackage == 'all':
+    elif wp == 'all':
         startTime = timer()
-        # TODO add possibility to save the results to text files? Maybe make the functions return the BenchmarkStatistics object?
+        # TODO add possibility to save the results to text files?
+        # Maybe make the functions return the BenchmarkStatistics object?
         statisticwp2 = pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
         statisticwp31 = pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
         statisticwp32 = pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
@@ -103,9 +99,14 @@ def main() -> None:
         endTime = timer()
         overallRuntime = endTime - startTime
 
-        print('Finished running all workpackage simulations on set ' + args.test_set + ' (took ' + pipeline.pretty_time(overallRuntime) + ')')
+        print(
+            'Finished running all workpackage simulations on set '
+            + str(test_set)
+            + ' (took '
+            + pipeline.pretty_time(overallRuntime) + ')'
+        )
 
-        if (args.writeResultsToFiles) :
+        if (write_results):
             print('Writing output to files...')
             statisticwp2.writeToFile('2')
             statisticwp31.writeToFile('31')
@@ -115,6 +116,26 @@ def main() -> None:
             statisticwp41.writeToFile('41')
             statisticwp42.writeToFile('42')
             print('Done!')
+
+
+def main() -> None:
+    args = parse_cli_arguments()
+    setup_logging(args.debug)
+    # Select test set directory
+    test_set = TEST_SET_DIR/args.test_set
+    # Plot when?
+    # Parse the raw value into an enum variant. This should be safe,
+    # since argparse makes sure only allowed choices appear here
+    plot_when = PlotWhen(args.plot_when)
+    # Number of cores to use, `None` will just use all
+    nr_of_cores = int(args.cores) if args.cores is not None else None
+    # Execute selected workpackage
+    execute_workpackages(wp=args.workpackage,
+                         test_set=test_set,
+                         plot_when=plot_when,
+                         nr_of_cores=nr_of_cores,
+                         write_results=args.writeResultsToFiles)
+
 
 if __name__ == '__main__':
     main()

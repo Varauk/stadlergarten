@@ -114,7 +114,7 @@ class BenchmarkStatistics:
   +------------------------------------------+
         ''')
 
-    def writeToFile(self, work_package) -> None:
+    def writeToFile(self, work_package: int) -> None:
         os.makedirs('benchmarkOutput', exist_ok=True)
         filename = Path('benchmarkOutput') / Path('benchmark_wp' + str(work_package) + '.txt')
         with open(filename, 'w') as f:
@@ -125,7 +125,6 @@ class BenchmarkStatistics:
             f.write('avgDivergenceOrdered=' + str(self.divergence_ordered) + '\n')
             f.write('avgDivergenceUnordered=' + str(self.divergence_unordered) + '\n')
             f.write('timestamp=' + str(datetime.now()))
-
 
 
 class Benchmark:
@@ -470,8 +469,6 @@ def benchmark_all(test_set: Path,
     # Get overall number of used scenarios
     number_of_scenarios = len(filePaths)
 
-    # TODO: Redirecting does not work for me..
-    #with logging_redirect_tqdm(loggers=[LOG, get_logger()]):
     # Eww, my CPU get's so bored by this ~ USE THE DAMN CORES!
     benchmark = Benchmark(work_package=work_package,
                           forbidden_leaves=forbidden_leaves,
@@ -553,8 +550,9 @@ def wp42benchmark(test_set: Path,
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)
 
+
 # TODO apply this to BenchmarkStatistics.pretty_print too?
-def pretty_time(secondsFloat):
+def pretty_time(secondsFloat: float) -> str:
     seconds = int(secondsFloat)
     intervals = (
         ('w', 604800),  # 60 * 60 * 24 * 7
