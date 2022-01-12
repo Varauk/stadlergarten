@@ -122,9 +122,6 @@ class Benchmark:
         self.plot_when = plot_when
 
     def __call__(self, path: Path) -> BenchmarkStatistics:
-        # extract clockwise and circular info from filename
-        circular = path.name.find('i') != -1
-        clocklike = path.name.find('o') != -1
         # Load the corresponding matrix with a new Output Object
         scenario = load(filename=path)
         # Write here the Wrapper which shall guess the core leaves and
@@ -152,7 +149,7 @@ class Benchmark:
             elif self.work_package == WorkPackage.WP4_2:
                 useSpikes = True
                 useErdbeermetComputation = True
-                
+
             output = pipeline(size=scenario.N,
                               predefinedSimulationMatrix=scenario.D,
                               measureDivergence=True,
@@ -482,4 +479,4 @@ def pretty_time(secondsFloat: float) -> str:
         if value:
             seconds -= value * count
             result.append("{}{}".format(value, name))
-    return ''.join(result[:2]) #+ '.' + f'{secondsFloat :.2f}'.split('.')[1]
+    return ''.join(result[:2])  # + '.' + f'{secondsFloat :.2f}'.split('.')[1]
