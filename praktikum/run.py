@@ -78,7 +78,8 @@ def main() -> None:
         pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
         endTime = timer()
         overallRuntime = endTime - startTime
-        print(f'Finished running all workpackage simulations on set ' + args.test_set + ' (took {overallRuntime :.2f} seconds)')
+        print(f'Finished running all workpackage simulations on set {args.test_set}',
+              f'(took {overallRuntime :.2f} seconds)')
 
 
 if __name__ == '__main__':
