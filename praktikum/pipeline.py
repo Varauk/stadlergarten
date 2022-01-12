@@ -17,6 +17,7 @@ from functools import reduce
 from enum import Enum
 import zipfile
 import os
+from datetime import datetime
 
 # Own classes
 from output import Output
@@ -119,12 +120,14 @@ class BenchmarkStatistics:
         os.makedirs('benchmarkOutput', exist_ok=True)
         filename = 'benchmarkOutput\\benchmark_wp' + str(work_package) + '.txt'
         with open(filename, 'w') as f:
-            f.write('workpackage=' + str(work_package) + "\n")
-            f.write('totalRuntime=' + str(self.total_runtime) + "\n")
-            f.write('correctlyClassified=' + str(self.correctly_classified) + "\n")
-            f.write('correctlyClassifiedRmaps=' + str(self.prop_4_leaf) + "\n")
-            f.write('avgDivergenceOrdered=' + str(self.divergence_ordered) + "\n")
-            f.write('avgDivergenceUnordered=' + str(self.divergence_unordered))
+            f.write('workpackage=' + str(work_package) + '\n')
+            f.write('totalRuntime=' + str(self.total_runtime) + '\n')
+            f.write('correctlyClassified=' + str(self.correctly_classified) + '\n')
+            f.write('correctlyClassifiedRmaps=' + str(self.prop_4_leaf) + '\n')
+            f.write('avgDivergenceOrdered=' + str(self.divergence_ordered) + '\n')
+            f.write('avgDivergenceUnordered=' + str(self.divergence_unordered) + '\n')
+            f.write('timestamp=' + str(datetime.now()))
+
 
 
 

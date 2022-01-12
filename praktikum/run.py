@@ -92,13 +92,10 @@ def main() -> None:
         statisticwp41 = pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
         statisticwp42 = pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
 
-
-
         endTime = timer()
         overallRuntime = endTime - startTime
 
         print('Finished running all workpackage simulations on set ' + args.test_set + ' (took ' + pipeline.pretty_time(overallRuntime) + ')')
-
 
         if (args.writeResultsToFiles) :
             print('Writing output to files...')
