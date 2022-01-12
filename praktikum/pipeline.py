@@ -4,9 +4,10 @@ from tqdm.contrib.concurrent import process_map
 # Erdbeermet
 from erdbeermet.simulation import simulate, load
 from erdbeermet.recognition import recognize
+from erdbeermet.tools.Tree import TreeNode
 
 # Python packages
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Any
 from timeit import default_timer as timer
 from logging import info
 import itertools
@@ -135,11 +136,10 @@ class Benchmark:
         # Rotate until you find a valid solution
         for combination in combinationsOfLeafes:
             info(f'Checked combination of core leaves: {combination}')
-            if combination is not None:
-                # The first leaves must correspond to the ones which
-                # are forbidden and therefore can't be deleted
-                # by the recognition algorithm.
-                first_leaves = combination
+            # The first leaves must correspond to the ones which
+            # are forbidden and therefore can't be deleted
+            # by the recognition algorithm.
+            first_leaves = combination
 
             # Enable Spike-Length Calculation and corresponding calculation form
             useSpikes = False
@@ -162,15 +162,15 @@ class Benchmark:
 
             # WP3 is special. We iterate through different combinations.
             # But only a successful combination is interesting in terms of
-            # R-Steps. 
+            # R-Steps.
             if (not output.classified_as_r_map
                 and (self.work_package == WorkPackage.WP3_3_1
                      or self.work_package == WorkPackage.WP3_3_2)):
-                # Here we have a combination which was NOT valid. 
+                # Here we have a combination which was NOT valid.
                 # so the R-steps are not interesting and we should
                 # not count them into divergence.
                 continue
-            else:           
+            else:
                 # Use the values of the current Output Object
                 # to modify overall values of benchmark
                 if (output.classified_as_r_map):
@@ -179,7 +179,7 @@ class Benchmark:
                     stats.numberOfMatchingFourLeafs += 1
                 stats.sumOfDivergenceWithOrder += output.divergence_with_order
                 stats.sumOfDivergenceWithoutOrder += output.divergence_without_order
-                
+
                 # When we are in WP3, we are finished with the first
                 # valid R-Map, so break the loop here.
                 if (self.work_package == WorkPackage.WP3_3_1
@@ -193,10 +193,10 @@ class Benchmark:
 
 def pipeline(history: History,
              plot_when: PlotWhen,
+             first_leaves: List[int],
              size: int = 10,
              predefinedSimulationMatrix: None = None,
              measureDivergence: bool = False,
-             first_leaves: Optional[List[int]] = None,
              forbidden_leaves: Optional[List[int]] = None,
              print_info: bool = False,
              use_spike_length: bool = False,
@@ -215,16 +215,16 @@ def pipeline(history: History,
         # use supplied matrix
         simulationMatrix = predefinedSimulationMatrix
 
-    output = recognizeWrapper(
-            simulationMatrix,
-            plot_when=plot_when,
-            print_info=print_info,
-            measureDivergence=measureDivergence,
-            history=history,
-            first_leaves=first_leaves,
-            forbidden_leaves=forbidden_leaves,
-            use_spike_length=use_spike_length,
-            use_erdbeermet_computation=use_erdbeermet_computation)
+    output = recognize_wrapper(
+        simulationMatrix,
+        plot_when=plot_when,
+        print_info=print_info,
+        measureDivergence=measureDivergence,
+        history=history,
+        first_leaves=first_leaves,
+        forbidden_leaves=forbidden_leaves,
+        use_spike_length=use_spike_length,
+        use_erdbeermet_computation=use_erdbeermet_computation)
 
     # print single outputs if debug is enabled
     info(output)
@@ -232,145 +232,138 @@ def pipeline(history: History,
     return output
 
 
-def recognizeWrapper(D: List[int],
-                     history: History,
-                     plot_when: PlotWhen,
-                     print_info: bool = False,
-                     measureDivergence: bool = False,
-                     first_leaves: Optional[List[int]] = None,
-                     forbidden_leaves: Optional[List[int]] = None,
-                     use_spike_length: bool = False,
-                     use_erdbeermet_computation: bool = False) -> Output:
+def recognize_wrapper(D: List[int],
+                      history: History,
+                      plot_when: PlotWhen,
+                      first_leaves: List[int],
+                      print_info: bool = False,
+                      measureDivergence: bool = False,
+                      forbidden_leaves: Optional[List[int]] = None,
+                      use_spike_length: bool = False,
+                      use_erdbeermet_computation: bool = False) -> Output:
     # Create our output object this also starts the timer
     output = Output()
 
     # Shall recognize skip forbidden leaves?
-    if forbidden_leaves is not None:
-        recognition_tree = recognize(D, True, print_info,
-                                     forbidden_leaves,
-                                     use_spike_length=use_spike_length,
-                                     use_erdbeermet_computation=use_erdbeermet_computation)
-    else:
-        recognition_tree = recognize(D, True, print_info,
-                                     use_spike_length=use_spike_length,
-                                     use_erdbeermet_computation=use_erdbeermet_computation)
+    recognition_tree = recognize(
+        D,
+        first_candidate_only=True,
+        print_info=print_info,
+        B=forbidden_leaves,
+        use_spike_length=use_spike_length,
+        use_erdbeermet_computation=use_erdbeermet_computation)
+
     # Check: Was the simulated Matrix an R-Map?
     if recognition_tree.root.valid_ways > 0:
         output.classified_as_r_map = True
-
-    # If not, Reconstruction failed and we should
-    # output 'plot distance matrices, recognition steps
-    # and final box plots of scenarios'
+        # Display the tree if the user wants to see it
+        if plot_when == PlotWhen.ALWAYS:
+            recognition_tree.visualize()
     else:
-        if plot_when == PlotWhen.ON_ERR:
+        # If the above failed, display the tree unless we should not
+        if plot_when != PlotWhen.NEVER:
             recognition_tree.visualize()
         # set output values and return.
-        output.classified_as_matching_four_leaves = False
-        output.divergence_with_order = 1.0
-        output.divergence_without_order = 1.0
-        output.stop_timer()
+        output.set_failed_state()
         return output
-
-    if plot_when == PlotWhen.ALWAYS:
-        recognition_tree.visualize()
 
     info(f'Valid ways of the root-Node: {recognition_tree.root.valid_ways}')
     # Check: Match reconstructed leaves and orginal leaves?
-    if first_leaves is not None:
-        # build a set which contains all childs
-        possible_node_set = []
+    # build a set which contains all childs
+    possible_node_set = []
 
-        # if we are in WP2, first_leaves is here still empty.
-        # but then the original leafs were 0,1,2,3
-        if first_leaves == []:
-            first_leaves = [0, 1, 2, 3]
+    for current_node in recognition_tree.postorder():
+        if current_node.n == 4 and current_node.valid_ways == 1:
+            possible_node_set.append(current_node)
 
-        for current_node in recognition_tree.postorder():
-            if current_node.n == 4 and current_node.valid_ways == 1:
-                possible_node_set.append(current_node)
-
-        # Choose random one of the nodes as stated in WP2
-        choosen_node = random.choice(possible_node_set)
-        info(f'Randomly choosen last node: {choosen_node.V} | Corresponding first leafes: {first_leaves}')
-        # Check current list of chosen_node against passLeafes-list
-        if set(first_leaves).issubset(set(choosen_node.V)):
-            output.classified_as_matching_four_leaves = True
-            info('Leafes matched!')
+    # Choose random one of the nodes as stated in WP2
+    choosen_node = random.choice(possible_node_set)
+    info(f'Randomly choosen last node: {choosen_node.V} | Corresponding first leafes: {first_leaves}')
+    # Check current list of chosen_node against passLeafes-list
+    if set(first_leaves).issubset(set(choosen_node.V)):
+        output.classified_as_matching_four_leaves = True
+        info('Leafes matched!')
 
     # Check: Do the R-Steps from the reconstructed tree
     # diverge from the original R-Steps?
     if measureDivergence:
-        reconstructed_r_steps = []
-
-        for current_node in recognition_tree.postorder():
-
-            # add all r_steps where the result was an r-map at the end
-            if current_node.valid_ways > 0 and current_node.R_step is not None:
-
-                # special case if we are at the end and have one of the
-                # possible candidates, we only want that one which was chosen
-                # randomly before at the leaf matching.
-                # So we will skip all others.
-                if current_node.n == 4 and current_node != choosen_node:
-                    continue
-
-                # Construct a new R-step which is comparable
-                # to those in the history
-                temp = (current_node.R_step[0],
-                        current_node.R_step[1],
-                        current_node.R_step[2],
-                        round(current_node.R_step[3], 6))
-                reconstructed_r_steps.append(temp)
-
-        new_list = sorted(reconstructed_r_steps, key=lambda item: item[2])
-        info(f'R-Steps from reconstruction:\n{str(new_list)}')
-        # Now we need to check the reconstructed r-steps against
-        # the original ones. Extract r-steps from history
-        history_r_steps = []
-        offset_counter = 0
-        for entry in history:
-            # Skip the first three entries since they
-            # aren't in the reconstructed set.
-            if offset_counter <= 2:
-                offset_counter += 1
-                continue
-
-            # We have to modifiy the values and sort x,y in the
-            # same order (ascending) as the reconstructed r_steps are.
-            # The last entry of alpha does not match on the last
-            # few digits sometimes. So I restricted it to 6 digits.
-            if entry[0] > entry[1]:
-                newTuple = (entry[1], entry[0], entry[2], round(1-entry[3], 6))
-            else:
-                newTuple = (entry[0], entry[1], entry[2], round(entry[3], 6))
-
-            history_r_steps.append(newTuple)
-
-        info(f'R-Steps from history:\n{str(history_r_steps)}')
-        # Now compare them. We use intersection to find elements
-        # that were contained in both.
-
-        # Matching entrys with order
-        matchCounter = 0
-        for index in range(len(history_r_steps)):
-            if history_r_steps[index] == reconstructed_r_steps[index]:
-                matchCounter += 1
-            info(f'Compare: {history_r_steps[index]} and {reconstructed_r_steps[index]}')
-        info(f'Match Counter is: {matchCounter}')
-        # Matching entrys without order
-        result = set(history_r_steps).intersection(set(reconstructed_r_steps))
-
-        # return the result as one minus the proportion of successful
-        # reconstructed steps from all original steps. Care for cases with n=4.
-        if len(history_r_steps) != 0:
-            output.divergence_without_order = 1 - (len(result) / len(history_r_steps))
-            output.divergence_with_order = 1 - (matchCounter / len(history_r_steps))
-            info(f'Current divergence without order: {output.divergence_without_order}')
-            info(f'Current divergence with order: {output.divergence_with_order}')
+        (unordered_div, ordered_div) = measure_divergence(
+            recognition_tree=recognition_tree,
+            history=history,
+            choosen_node=choosen_node)
+        output.divergence_without_order = unordered_div
+        output.divergence_with_order = ordered_div
 
     # Make sure to stop the output timer
     output.stop_timer()
     return output
+
+
+def measure_divergence(recognition_tree: Any,
+                       history: History,
+                       choosen_node: TreeNode) -> Tuple[float, float]:
+    '''Measure the divergence of the recognized tree.
+       Returns a tuple of (unordered, ordered) divergence.'''
+    reconstructed_r_steps = []
+
+    for current_node in recognition_tree.postorder():
+        # add all r_steps where the result was an r-map at the end
+        if current_node.valid_ways == 0 or current_node.R_step is None:
+            continue
+        # special case if we are at the end and have one of the
+        # possible candidates, we only want that one which was chosen
+        # randomly before at the leaf matching.
+        # So we will skip all others.
+        if current_node.n == 4 and current_node != choosen_node:
+            continue
+        # Construct a new R-step which is comparable
+        # to those in the history
+        temp = (current_node.R_step[0],
+                current_node.R_step[1],
+                current_node.R_step[2],
+                round(current_node.R_step[3], 6))
+        reconstructed_r_steps.append(temp)
+
+    # Now we need to check the reconstructed r-steps against
+    # the original ones. Extract r-steps from history
+    history_r_steps = []
+    for entry in history[3:]:
+        # We have to modifiy the values and sort x,y in the
+        # same order (ascending) as the reconstructed r_steps are.
+        # The last entry of alpha does not match on the last
+        # few digits sometimes. So I restricted it to 6 digits.
+        if entry[0] > entry[1]:
+            new_tuple = (entry[1], entry[0], entry[2], round(1-entry[3], 6))
+        else:
+            new_tuple = (entry[0], entry[1], entry[2], round(entry[3], 6))
+
+        history_r_steps.append(new_tuple)
+
+    info(f'R-Steps from history:\n{str(history_r_steps)}')
+    # Now compare them. We use intersection to find elements
+    # that were contained in both.
+
+    # Matching entrys with order
+    match_ordered = 0
+    for index in range(len(history_r_steps)):
+        historical = history_r_steps[index]
+        reconstructed = reconstructed_r_steps[index]
+        if historical == reconstructed_r_steps[index]:
+            match_ordered += 1
+        info(f'Compare: {historical} and {reconstructed}')
+    info(f'Match Counter is: {match_ordered}')
+    # Matching entrys without order
+    match_unordered = len(
+        set(history_r_steps).intersection(set(reconstructed_r_steps)))
+
+    # return the result as one minus the proportion of successful
+    # reconstructed steps from all original steps. Care for cases with n=4.
+    if len(history_r_steps) == 0:
+        # Return maximum divergence
+        return (1.0, 1.0)
+    else:
+        return (1 - (match_unordered / len(history_r_steps)),
+                1 - (match_ordered / len(history_r_steps)))
 
 
 def expand_leaves(leaves: Union[List[int], int, None],
@@ -389,10 +382,9 @@ def expand_leaves(leaves: Union[List[int], int, None],
         # Other solutions are more interesting.
         return list(reversed(leav_lists))
     else:
-        # None.. well.. judging from forbidden_leaves, this means
-        # there is a single element with no forbidden_leaves. There is exactly
-        # one combination of `count` leaves from zero leaves
-        return [[]]
+        # The default combination is the list with all the initial leaves
+        # We use this if None of the leaves are forbidden
+        return [[0, 1, 2, 3]]
 
 
 def expand_hists_file(filePaths: List[Path]) -> List[Path]:
@@ -430,7 +422,7 @@ def benchmark_all(test_set: Path,
                   nr_of_cores: Optional[int],
                   plot_when: PlotWhen,
                   work_package: WorkPackage,
-                  first_leaves: List[int] = [0, 1, 2, 3],
+                  first_leaves: List[int],
                   forbidden_leaves: Union[List[int], int, None] = None
                   ) -> BenchmarkStatistics:
     '''

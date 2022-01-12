@@ -17,7 +17,7 @@ class WorkPackage(Enum):
     # Benchmark like WP2 with smallest spikes and erdbeermet calculation
     WP4_2: Final = 6
 
-    def __str__(self):
+    def __str__(self) -> str:
         map = {WorkPackage.WP2: 'WP2',
                WorkPackage.WP3_1: 'WP3_1',
                WorkPackage.WP3_2: 'WP3_2',
@@ -28,7 +28,7 @@ class WorkPackage(Enum):
         return map[self]
 
     def get_forbidden_leaves(self) -> Union[list[int], int, None]:
-        '''Get the forbidden_leaves value for this work package'''
+        '''Get the forbidden_leaves value for this workpackage'''
         if self == WorkPackage.WP3_1:
             return [0, 1, 2]
         elif self == WorkPackage.WP3_2:
@@ -40,6 +40,11 @@ class WorkPackage(Enum):
         else:
             return None
 
+    def get_first_leaves(self) -> list[int]:
+        '''Return the first leaves for this workpackage'''
+        return [0, 1, 2, 3]
+
+    @staticmethod
     def from_cli_arg(arg: str) -> list['WorkPackage']:
         map = {'2': WorkPackage.WP2,
                '31': WorkPackage.WP3_1,

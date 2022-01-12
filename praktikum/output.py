@@ -52,6 +52,12 @@ class Output:
 
         return string
 
+    def set_failed_state(self) -> None:
+        self.classified_as_matching_four_leaves = False
+        self.divergence_with_order = 1.0
+        self.divergence_without_order = 1.0
+        self.stop_timer()
+
     def stop_timer(self) -> None:
         self.timer_end = timer()
 
