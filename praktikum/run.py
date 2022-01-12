@@ -49,7 +49,7 @@ def setup_logging(enable_debug: bool) -> None:
     level = logging.INFO if enable_debug else logging.WARN
     log_folder = Path('logs')
     log_folder.mkdir(exist_ok=True)
-    logfile = log_folder / Path(str(datetime.now()) + '.log')
+    logfile = log_folder / Path(datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + '.log')
     logging.basicConfig(filename=logfile, encoding='utf-8', level=level)
 
 

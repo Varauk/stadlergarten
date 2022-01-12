@@ -465,6 +465,8 @@ def benchmark_all(test_set: Path,
 # TODO apply this to BenchmarkStatistics.pretty_print too?
 def pretty_time(secondsFloat: float) -> str:
     seconds = int(secondsFloat)
+    if (seconds == 0) :
+        return '0s'
     intervals = (
         ('w', 604800),  # 60 * 60 * 24 * 7
         ('d', 86400),    # 60 * 60 * 24
