@@ -36,6 +36,7 @@ def main() -> None:
     parser.add_argument('--cores', '-j',
                         help='Number of cores to use',
                         default=None)
+    parser.add_argument('--writeResultsToFiles', '-w', action='store_true')
     args = parser.parse_args()
 
     # Enable debugging if requested
@@ -53,33 +54,62 @@ def main() -> None:
 
     # Execute selected workpackage
     if args.workpackage == '2':
-        pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp2 = pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
+        if (args.writeResultsToFiles) :
+            statisticwp2.writeToFile('2')
     elif args.workpackage == '31':
-        pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp31 = pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
+        if (args.writeResultsToFiles) :
+            statisticwp31.writeToFile('2')
     elif args.workpackage == '32':
-        pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp32 = pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
+        if (args.writeResultsToFiles) :
+            statisticwp32.writeToFile('2')
     elif args.workpackage == '331':
-        pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp331 = pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
+        if (args.writeResultsToFiles) :
+            statisticwp331.writeToFile('2')
     elif args.workpackage == '332':
-        pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp332 = pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
+        if (args.writeResultsToFiles) :
+            statisticwp332.writeToFile('2')
     elif args.workpackage == '41':
-        pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp41 = pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
+        if (args.writeResultsToFiles) :
+            statisticwp41.writeToFile('2')
     elif args.workpackage == '42':
-        pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp42 = pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
+        if (args.writeResultsToFiles) :
+            statisticwp42.writeToFile('2')
     elif args.workpackage == 'all':
         startTime = timer()
         # TODO add possibility to save the results to text files? Maybe make the functions return the BenchmarkStatistics object?
-        pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
-        pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
-        pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
-        pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
-        pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
-        pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
-        pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp2 = pipeline.wp2benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp31 = pipeline.wp31benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp32 = pipeline.wp32benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp331 = pipeline.wp331benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp332 = pipeline.wp332benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp41 = pipeline.wp41benchmark(test_set, plot_when, nr_of_cores)
+        statisticwp42 = pipeline.wp42benchmark(test_set, plot_when, nr_of_cores)
+
+
+
         endTime = timer()
         overallRuntime = endTime - startTime
-        print('Finished running all workpackage simulations on set ' + args.test_set + f' (took {overallRuntime :.2f} seconds)')
 
+        print('Finished running all workpackage simulations on set ' + args.test_set + ' (took ' + pipeline.pretty_time(overallRuntime) + ')')
+
+
+        if (args.writeResultsToFiles) :
+            print('Writing output to files...')
+            statisticwp2.writeToFile('2')
+            statisticwp31.writeToFile('31')
+            statisticwp32.writeToFile('32')
+            statisticwp331.writeToFile('331')
+            statisticwp332.writeToFile('332')
+            statisticwp41.writeToFile('41')
+            statisticwp42.writeToFile('42')
+            print('Done!')
 
 if __name__ == '__main__':
     main()

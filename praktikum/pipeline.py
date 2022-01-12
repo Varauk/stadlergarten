@@ -16,6 +16,7 @@ from pathlib import Path
 from functools import reduce
 from enum import Enum
 import zipfile
+import os
 
 # Own classes
 from output import Output
@@ -54,6 +55,13 @@ class BenchmarkStatistics:
     sumOfDivergenceWithOrder: float
     sumOfDivergenceWithoutOrder: float
 
+    # set by pretty_print after a benchmark
+    correctly_classified: float
+    prop_4_leaf: float
+    divergence_ordered: float
+    divergence_unordered: float
+    total_runtime: float
+
     def __init__(self) -> None:
         self.timer_start = timer()
         self.timer_end = None
@@ -86,26 +94,38 @@ class BenchmarkStatistics:
 
     def pretty_print(self, total_count: int, work_package: int) -> None:
         # Return the benchmark results in a nice format
-        correctly_classified = self.numberOfRMaps / total_count
-        prop_4_leaf = self.numberOfMatchingFourLeafs / total_count
-        divergence_ordered = self.sumOfDivergenceWithOrder / total_count
-        divergence_unordered = self.sumOfDivergenceWithoutOrder / total_count
+        self.correctly_classified = self.numberOfRMaps / total_count
+        self.prop_4_leaf = self.numberOfMatchingFourLeafs / total_count
+        self.divergence_ordered = self.sumOfDivergenceWithOrder / total_count
+        self.divergence_unordered = self.sumOfDivergenceWithoutOrder / total_count
         if isinstance(self.timer_end, float):
-            total_runtime = self.timer_end - self.timer_start
+            self.total_runtime = self.timer_end - self.timer_start
         else:
-            total_runtime = float('inf')
+            self.total_runtime = float('inf')
 
         print(f'''
   +--------------= Benchmark =---------------+
   |                  Workpackage: {work_package :>9}  |
   | Number of simulated matrices: {total_count :>9}  |
-  |     Overall runtime measured: {total_runtime :>9.2f}s |
-  |  Correctly classified R-Maps: {correctly_classified :>10.2%} |
-  |    Proportion of 4-leaf-maps: {prop_4_leaf :>10.2%} |
-  |  Avg. divergence   (ordered): {divergence_ordered :>10.2%} |
-  |  Avg. divergence (unordered): {divergence_unordered :>10.2%} |
+  |     Overall runtime measured: {self.total_runtime :>9.2f}s |
+  |  Correctly classified R-Maps: {self.correctly_classified :>10.2%} |
+  |    Proportion of 4-leaf-maps: {self.prop_4_leaf :>10.2%} |
+  |  Avg. divergence   (ordered): {self.divergence_ordered :>10.2%} |
+  |  Avg. divergence (unordered): {self.divergence_unordered :>10.2%} |
   +------------------------------------------+
         ''')
+
+    def writeToFile(self, work_package) -> None:
+        os.makedirs('benchmarkOutput', exist_ok=True)
+        filename = 'benchmarkOutput\\benchmark_wp' + str(work_package) + '.txt'
+        with open(filename, 'w') as f:
+            f.write('workpackage=' + str(work_package) + "\n")
+            f.write('totalRuntime=' + str(self.total_runtime) + "\n")
+            f.write('correctlyClassified=' + str(self.correctly_classified) + "\n")
+            f.write('correctlyClassifiedRmaps=' + str(self.prop_4_leaf) + "\n")
+            f.write('avgDivergenceOrdered=' + str(self.divergence_ordered) + "\n")
+            f.write('avgDivergenceUnordered=' + str(self.divergence_unordered))
+
 
 
 class Benchmark:
@@ -438,7 +458,7 @@ def benchmark_all(test_set: Path,
                   work_package: int = 2,
                   first_leaves: List[int] = [0, 1, 2, 3],
                   forbidden_leaves: Union[List[int], int, None] = None
-                  ) -> None:
+                  ) -> BenchmarkStatistics:
     '''
     for every matrix which was generated: Load it, and use the
     pipeline on it. Generate a new Output-Object for every of them
@@ -467,12 +487,13 @@ def benchmark_all(test_set: Path,
         # Reduce all the statistics into a single one and print that
         final_statistic = reduce(BenchmarkStatistics.add, statistics_iter)
         final_statistic.pretty_print(number_of_scenarios, work_package)
+        return final_statistic
 
 
 def wp2benchmark(test_set: Path,
                  plot_when: PlotWhen,
-                 nr_of_cores: Optional[int]) -> None:
-    benchmark_all(test_set,
+                 nr_of_cores: Optional[int]) -> BenchmarkStatistics:
+    return benchmark_all(test_set,
                   work_package=WORK_PACKAGE_2,
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)
@@ -480,8 +501,8 @@ def wp2benchmark(test_set: Path,
 
 def wp31benchmark(test_set: Path,
                   plot_when: PlotWhen,
-                  nr_of_cores: Optional[int]) -> None:
-    benchmark_all(test_set,
+                  nr_of_cores: Optional[int]) -> BenchmarkStatistics:
+    return benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3_1,
                   forbidden_leaves=[0, 1, 2],
                   plot_when=plot_when,
@@ -490,8 +511,8 @@ def wp31benchmark(test_set: Path,
 
 def wp32benchmark(test_set: Path,
                   plot_when: PlotWhen,
-                  nr_of_cores: Optional[int]) -> None:
-    benchmark_all(test_set,
+                  nr_of_cores: Optional[int]) -> BenchmarkStatistics:
+    return benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3_2,
                   forbidden_leaves=[0, 1, 2, 3],
                   plot_when=plot_when,
@@ -500,8 +521,8 @@ def wp32benchmark(test_set: Path,
 
 def wp331benchmark(test_set: Path,
                    plot_when: PlotWhen,
-                   nr_of_cores: Optional[int]) -> None:
-    benchmark_all(test_set,
+                   nr_of_cores: Optional[int]) -> BenchmarkStatistics:
+    return benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3_3_1,
                   forbidden_leaves=3,
                   plot_when=plot_when,
@@ -510,8 +531,8 @@ def wp331benchmark(test_set: Path,
 
 def wp332benchmark(test_set: Path,
                    plot_when: PlotWhen,
-                   nr_of_cores: Optional[int]) -> None:
-    benchmark_all(test_set,
+                   nr_of_cores: Optional[int]) -> BenchmarkStatistics:
+    return benchmark_all(test_set,
                   work_package=WORK_PACKAGE_3_3_2,
                   forbidden_leaves=4,
                   plot_when=plot_when,
@@ -520,17 +541,36 @@ def wp332benchmark(test_set: Path,
 
 def wp41benchmark(test_set: Path,
                  plot_when: PlotWhen,
-                 nr_of_cores: Optional[int]) -> None:
-    benchmark_all(test_set,
+                 nr_of_cores: Optional[int]) -> BenchmarkStatistics:
+    return benchmark_all(test_set,
                   work_package=WORK_PACKAGE_4_1,
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)
-    
-    
+
+
 def wp42benchmark(test_set: Path,
                  plot_when: PlotWhen,
-                 nr_of_cores: Optional[int]) -> None:
-    benchmark_all(test_set,
+                 nr_of_cores: Optional[int]) -> BenchmarkStatistics:
+    return benchmark_all(test_set,
                   work_package=WORK_PACKAGE_4_2,
                   plot_when=plot_when,
                   nr_of_cores=nr_of_cores)
+
+# TODO apply this to BenchmarkStatistics.pretty_print too?
+def pretty_time(secondsFloat):
+    seconds = int(secondsFloat)
+    intervals = (
+        ('w', 604800),  # 60 * 60 * 24 * 7
+        ('d', 86400),    # 60 * 60 * 24
+        ('hrs', 3600),    # 60 * 60
+        ('min', 60),
+        ('s', 1),
+    )
+    result = []
+
+    for name, count in intervals:
+        value = seconds // count
+        if value:
+            seconds -= value * count
+            result.append("{}{}".format(value, name))
+    return ''.join(result[:2]) #+ '.' + f'{secondsFloat :.2f}'.split('.')[1]
