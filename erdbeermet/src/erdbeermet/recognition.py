@@ -387,17 +387,18 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None, use_spike
         n = len(V)
 
         if n > 4:
-            #print(f"In the Stack. Current n: {n}")
             candidates = _find_candidates(D, V, print_info, B)
+            
             # Spikelength-wise reordering of candidates
             if use_spike_length and len(candidates) > 1 and n > 5:
                 candidates = getMinimalBySpikelength(candidates=candidates, V=V, D=D, use_erdbeermet_computation=use_erdbeermet_computation)
-               # print(f"Erzeugte Kandidaten: {candidates}")
+                
+                # There was no minimal candidate so report a fail
                 if candidates is None:
                     _finalize_tree(recognition_tree)
-                    # recognition_tree.root.valid_ways = 0
+                    # Set it to zero since it was a failure.
+                    recognition_tree.root.valid_ways = 0
                     return recognition_tree
-            #    print(f"Reordered Candidates: {candidates}")
             
             # Continue algorithm
             found_valid = False
@@ -465,8 +466,6 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None, use_spike
     return recognition_tree
 
 def getMinimalBySpikelength(candidates, V, D, use_erdbeermet_computation): 
-    #print("Starting SpikeLength Calculation.")
-    #print(f"Ursprüngliche Kandidaten: {candidates}")
     spikelength_dict = {}
     for current_candidate in candidates:
         # print(f"Current Candidate is: {current_candidate}.")
@@ -513,42 +512,49 @@ def getMinimalBySpikelength(candidates, V, D, use_erdbeermet_computation):
             #print(f"SpikeLengths of candidate {current_candidate} are: ({final_delta_x}, {final_delta_y}, {delta_z})")
     
     
-    # Now compare candidates - TODO: Dictionary darf Größe während iteration nicht verändern. Erzeuge also neues und übernehme nur die, die minimale Kandidaten sind und gebe diese zurück.
-
+    # Now compare candidates
     comparison_dict = deepcopy(spikelength_dict)
-    for key1 in comparison_dict:
+    for key1 in spikelength_dict:
         
         # Trage an die (x,y,z) Werte die entsprechenden Spike-Lengths
-        spikeMap1 = { key1[i]: comparison_dict[key1][i] for i in [0, 1, 2] }
+        spikeMap1 = { key1[i]: spikelength_dict[key1][i] for i in [0, 1, 2] }
         
         # Gibt es einen kleineren? Wenn ja, dann füge ihn nicht hinzu.
-        for key2 in comparison_dict:
+        for key2 in spikelength_dict:
             
+            # Breaker for both for loops since its enough to find one smaller spike to break completley for this key1
+            breaker = False
+            if breaker:
+                break
+            
+            # Trivial case
             if key1 == key2:
                 continue
             
             # Trage an die (a,b,c) Werte die entsprechenden Spike-Lengths
-            spikeMap2 = { key2[i]: comparison_dict[key2][i] for i in [0, 1, 2] }
-            
+            spikeMap2 = { key2[i]: spikelength_dict[key2][i] for i in [0, 1, 2] }
             intersectedSet = set(spikeMap1.keys()).intersection(set(spikeMap2.keys()))
-            
             
             # Nicht vergleichbar    
             if len(intersectedSet) == 0:
                 continue
-            print(f"Hier haben sich folgende Nodes überschnitten: {intersectedSet}")
-            # Entferne wenn die jeweiligen Spike-Lengths unterschiedlich sind.
+            
+            # Iterate through all similar nodes of these candidates
             for spike_key in intersectedSet:
+                # Remove the key1 if there exists at least one key2 where the spikelength is shorter
                 if spikeMap1[spike_key] > spikeMap2[spike_key]:
-                    print(f"Spike-Vergleich auf {spike_key}: {spikeMap1[spike_key]} und {spikeMap2[spike_key]}. Wenn hinterer kleiner, dann pope ersten Eintrag der da wäre: {comparison_dict[key1]}")
-                    comparison_dict.pop(key1)
+                    
+                    # Check if this key still exists and if remove it
+                    if key1 in comparison_dict.keys():
+                        comparison_dict.pop(key1)
+                    
+                    # Break for this key1 since we found a smaller candidate
+                    breaker = True
                     break
 
     choices = list(comparison_dict.keys())                
-    if len(choices) < len(comparison_dict.keys()):
-        print("YAY WE FOUND ONE BITCH")
-    
     if len(choices) == 0:
+        # Every candidate has a smaller one so no minimal exists
         return None
     
     return [choice(choices)]
