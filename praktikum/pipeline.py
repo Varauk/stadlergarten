@@ -1,5 +1,4 @@
 # Imports from libraries
-from tqdm.contrib.logging import logging_redirect_tqdm
 from tqdm.contrib.concurrent import process_map
 
 # Erdbeermet
@@ -40,7 +39,6 @@ WORK_PACKAGE_4_2: Final = 6
 
 History = List[Tuple[int, int, int, float, float]]
 
-# TODO: Debug doesn't work right now.
 
 class PlotWhen(Enum):
     NEVER = 'never'
@@ -337,8 +335,6 @@ def recognizeWrapper(D: List[int],
                 # randomly before at the leaf matching.
                 # So we will skip all others.
                 if current_node.n == 4 and current_node != choosen_node:
-                    info(f'Skipped this entry: {str(current_node.V)} although',
-                         'it was valid but not chosen.')
                     continue
 
                 # Construct a new R-step which is comparable
@@ -475,20 +471,20 @@ def benchmark_all(test_set: Path,
     number_of_scenarios = len(filePaths)
 
     # TODO: Redirecting does not work for me..
-    with logging_redirect_tqdm():
-        # Eww, my CPU get's so bored by this ~ USE THE DAMN CORES!
-        benchmark = Benchmark(work_package=work_package,
-                              forbidden_leaves=forbidden_leaves,
-                              plot_when=plot_when)
-        # Construct our statistics on all cores
-        statistics_iter = process_map(benchmark,
-                                      filePaths,
-                                      max_workers=nr_of_cores,
-                                      chunksize=1)
-        # Reduce all the statistics into a single one and print that
-        final_statistic = reduce(BenchmarkStatistics.add, statistics_iter)
-        final_statistic.pretty_print(number_of_scenarios, work_package)
-        return final_statistic
+    #with logging_redirect_tqdm(loggers=[LOG, get_logger()]):
+    # Eww, my CPU get's so bored by this ~ USE THE DAMN CORES!
+    benchmark = Benchmark(work_package=work_package,
+                          forbidden_leaves=forbidden_leaves,
+                          plot_when=plot_when)
+    # Construct our statistics on all cores
+    statistics_iter = process_map(benchmark,
+                                  filePaths,
+                                  max_workers=nr_of_cores,
+                                  chunksize=1)
+    # Reduce all the statistics into a single one and print that
+    final_statistic = reduce(BenchmarkStatistics.add, statistics_iter)
+    final_statistic.pretty_print(number_of_scenarios, work_package)
+    return final_statistic
 
 
 def wp2benchmark(test_set: Path,

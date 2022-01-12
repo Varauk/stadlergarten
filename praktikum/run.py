@@ -5,6 +5,7 @@ import logging
 from typing import Final, List
 from pathlib import Path
 from timeit import default_timer as timer
+from datetime import datetime
 
 import pipeline
 from pipeline import PlotWhen
@@ -17,6 +18,15 @@ def test_set_choices() -> List[str]:
     directories = filter(Path.is_dir, possible_files)
     dir_names = [dir.name for dir in directories]
     return list(dir_names)
+
+
+def setup_logging(enable_debug: bool) -> None:
+    '''Setup logger and enable `info` output if requested'''
+    level = logging.INFO if enable_debug else logging.WARN
+    log_folder = Path('logs')
+    log_folder.mkdir(exist_ok=True)
+    logfile = log_folder / Path(str(datetime.now()) + '.log')
+    logging.basicConfig(filename=logfile, encoding='utf-8', level=level)
 
 
 def main() -> None:
@@ -39,9 +49,7 @@ def main() -> None:
     parser.add_argument('--writeResultsToFiles', '-w', action='store_true')
     args = parser.parse_args()
 
-    # Enable debugging if requested
-    level = logging.INFO if args.debug else logging.WARN
-    logging.basicConfig(level=level)
+    setup_logging(args.debug)
 
     # Select test set directory
     test_set = TEST_SET_DIR/args.test_set
