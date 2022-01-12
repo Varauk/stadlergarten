@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from itertools import combinations, permutations
+from copy import deepcopy
+from random import choice
 import numpy as np
 
 from erdbeermet.tools.Tree import Tree, TreeNode
 from numpy.core.fromnumeric import sort
+
 
 
 __author__ = 'David Schaller'
@@ -384,21 +387,25 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None, use_spike
         n = len(V)
 
         if n > 4:
-
+            #print(f"In the Stack. Current n: {n}")
             candidates = _find_candidates(D, V, print_info, B)
-
             # Spikelength-wise reordering of candidates
-            if use_spike_length and len(candidates) > 1:
-                candidates = reorderBySpikelength(candidates=candidates, V=V, D=D, use_erdbeermet_computation=use_erdbeermet_computation)
-
+            if use_spike_length and len(candidates) > 1 and n > 5:
+                candidates = getMinimalBySpikelength(candidates=candidates, V=V, D=D, use_erdbeermet_computation=use_erdbeermet_computation)
+               # print(f"Erzeugte Kandidaten: {candidates}")
+                if candidates is None:
+                    _finalize_tree(recognition_tree)
+                    # recognition_tree.root.valid_ways = 0
+                    return recognition_tree
+            #    print(f"Reordered Candidates: {candidates}")
+            
             # Continue algorithm
             found_valid = False
-
+            
             if print_info:
                 print(f'-----> n = {n}, V = {V} ---> R-steps actually carried out')
             for x, y, z, u_witness, alpha in candidates:
-
-                V_copy = V.copy()
+                V_copy = deepcopy(V)
                 V_copy.remove(z)
 
                 child = TreeNode(n-1, V_copy, R_step=(x, y, z, alpha))
@@ -457,10 +464,12 @@ def recognize(D, first_candidate_only=False, print_info=False, B=None, use_spike
     _finalize_tree(recognition_tree)
     return recognition_tree
 
-def reorderBySpikelength(candidates, V, D, use_erdbeermet_computation): 
+def getMinimalBySpikelength(candidates, V, D, use_erdbeermet_computation): 
+    #print("Starting SpikeLength Calculation.")
+    #print(f"Ursprüngliche Kandidaten: {candidates}")
     spikelength_dict = {}
     for current_candidate in candidates:
-
+        # print(f"Current Candidate is: {current_candidate}.")
         if use_erdbeermet_computation:
             # Erbeermet approach by using their function
             (delta_z, _ , delta_x, delta_y) = _compute_deltas(V=V,
@@ -501,27 +510,48 @@ def reorderBySpikelength(candidates, V, D, use_erdbeermet_computation):
                 final_delta_x = 0.0
                 final_delta_y = 0.0
             spikelength_dict[current_candidate] = (final_delta_x, final_delta_y, delta_z)
+            #print(f"SpikeLengths of candidate {current_candidate} are: ({final_delta_x}, {final_delta_y}, {delta_z})")
     
-    # Now compare candidates 
-    temp_dict = {}
-    for key1 in spikelength_dict:
-        smaller_counter = 0
-        for key2 in spikelength_dict:
+    
+    # Now compare candidates - TODO: Dictionary darf Größe während iteration nicht verändern. Erzeuge also neues und übernehme nur die, die minimale Kandidaten sind und gebe diese zurück.
+
+    comparison_dict = deepcopy(spikelength_dict)
+    for key1 in comparison_dict:
+        
+        # Trage an die (x,y,z) Werte die entsprechenden Spike-Lengths
+        spikeMap1 = { key1[i]: comparison_dict[key1][i] for i in [0, 1, 2] }
+        
+        # Gibt es einen kleineren? Wenn ja, dann füge ihn nicht hinzu.
+        for key2 in comparison_dict:
+            
             if key1 == key2:
-                 continue
-            else:
-                if (spikelength_dict[key1][0] < spikelength_dict[key2][0] 
-                    or spikelength_dict[key1][1] < spikelength_dict[key2][1] 
-                    or spikelength_dict[key1][2] < spikelength_dict[key2][2]):
-                    smaller_counter += 1
+                continue
+            
+            # Trage an die (a,b,c) Werte die entsprechenden Spike-Lengths
+            spikeMap2 = { key2[i]: comparison_dict[key2][i] for i in [0, 1, 2] }
+            
+            intersectedSet = set(spikeMap1.keys()).intersection(set(spikeMap2.keys()))
+            
+            
+            # Nicht vergleichbar    
+            if len(intersectedSet) == 0:
+                continue
+            print(f"Hier haben sich folgende Nodes überschnitten: {intersectedSet}")
+            # Entferne wenn die jeweiligen Spike-Lengths unterschiedlich sind.
+            for spike_key in intersectedSet:
+                if spikeMap1[spike_key] > spikeMap2[spike_key]:
+                    print(f"Spike-Vergleich auf {spike_key}: {spikeMap1[spike_key]} und {spikeMap2[spike_key]}. Wenn hinterer kleiner, dann pope ersten Eintrag der da wäre: {comparison_dict[key1]}")
+                    comparison_dict.pop(key1)
+                    break
 
-            temp_dict[key1] = smaller_counter
-
-    # Order the dict descending because a higher smaller_counter means its smaller then the others and construct the list therefore. 
-    sorted_list = sorted(temp_dict.items(), key = lambda item: item[1], reverse = True)
-
-    # Delete the smaller_count entry in the lists and return
-    return [a for (a,b) in sorted_list]
+    choices = list(comparison_dict.keys())                
+    if len(choices) < len(comparison_dict.keys()):
+        print("YAY WE FOUND ONE BITCH")
+    
+    if len(choices) == 0:
+        return None
+    
+    return [choice(choices)]
 
 # Helper functions for Spike-Length Computation
 def _delta_abc(D, a, b, c):

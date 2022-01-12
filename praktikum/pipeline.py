@@ -257,7 +257,6 @@ def recognizeWrapper(D: List[int],
         recognition_tree = recognize(D, True, print_info,
                                      use_spike_length=use_spike_length,
                                      use_erdbeermet_computation=use_erdbeermet_computation)
-
     # Check: Was the simulated Matrix an R-Map?
     if recognition_tree.root.valid_ways > 0:
         output.classified_as_r_map = True
