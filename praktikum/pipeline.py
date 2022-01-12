@@ -118,7 +118,7 @@ class BenchmarkStatistics:
 
     def writeToFile(self, work_package) -> None:
         os.makedirs('benchmarkOutput', exist_ok=True)
-        filename = 'benchmarkOutput\\benchmark_wp' + str(work_package) + '.txt'
+        filename = Path('benchmarkOutput') / Path('benchmark_wp' + str(work_package) + '.txt')
         with open(filename, 'w') as f:
             f.write('workpackage=' + str(work_package) + '\n')
             f.write('totalRuntime=' + str(self.total_runtime) + '\n')
@@ -127,7 +127,6 @@ class BenchmarkStatistics:
             f.write('avgDivergenceOrdered=' + str(self.divergence_ordered) + '\n')
             f.write('avgDivergenceUnordered=' + str(self.divergence_unordered) + '\n')
             f.write('timestamp=' + str(datetime.now()))
-
 
 
 
