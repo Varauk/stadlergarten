@@ -82,11 +82,13 @@ class BenchmarkStatistics:
         else:
             self.total_runtime = float('inf')
 
+        prettyTime = pretty_time(self.total_runtime)
+
         print(f'''
   +--------------= Benchmark =---------------+
   |                  Workpackage: {work_package :>9}  |
   | Number of simulated matrices: {total_count :>9}  |
-  |     Overall runtime measured: {self.total_runtime :>9.2f}s |
+  |     Overall runtime measured: {prettyTime :>10} |
   |  Correctly classified R-Maps: {self.correctly_classified :>10.2%} |
   |    Proportion of 4-leaf-maps: {self.prop_4_leaf :>10.2%} |
   |  Avg. divergence   (ordered): {self.divergence_ordered :>10.2%} |
@@ -453,8 +455,6 @@ def benchmark_all(test_set: Path,
     final_statistic.pretty_print(number_of_scenarios, work_package)
     return final_statistic
 
-
-# TODO apply this to BenchmarkStatistics.pretty_print too?
 def pretty_time(secondsFloat: float) -> str:
     seconds = int(secondsFloat)
     if (seconds == 0) :
