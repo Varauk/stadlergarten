@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Final, Union
+from typing import Final, Union, List
 
 
 class WorkPackage(Enum):
@@ -27,7 +27,7 @@ class WorkPackage(Enum):
                WorkPackage.WP4_2: 'WP4_2'}
         return map[self]
 
-    def get_forbidden_leaves(self) -> Union[list[int], int, None]:
+    def get_forbidden_leaves(self) -> Union[List[int], int, None]:
         '''Get the forbidden_leaves value for this workpackage'''
         if self == WorkPackage.WP3_1:
             return [0, 1, 2]
@@ -40,12 +40,12 @@ class WorkPackage(Enum):
         else:
             return None
 
-    def get_first_leaves(self) -> list[int]:
+    def get_first_leaves(self) -> List[int]:
         '''Return the first leaves for this workpackage'''
         return [0, 1, 2, 3]
 
     @staticmethod
-    def from_cli_arg(arg: str) -> list['WorkPackage']:
+    def from_cli_arg(arg: str) -> List['WorkPackage']:
         map = {'2': WorkPackage.WP2,
                '31': WorkPackage.WP3_1,
                '32': WorkPackage.WP3_2,

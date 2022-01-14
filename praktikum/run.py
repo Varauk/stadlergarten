@@ -65,7 +65,7 @@ def execute_workpackage(wp: WorkPackage,
                          nr_of_cores=nr_of_cores)
 
 
-def execute_workpackages(workpackages: list[WorkPackage],
+def execute_workpackages(workpackages: List[WorkPackage],
                          test_set: Path,
                          plot_when: PlotWhen,
                          nr_of_cores: Optional[int],
