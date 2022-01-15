@@ -57,3 +57,4 @@ testfile*
 *.DS_Store
 erdbeermet/src/erdbeermet.egg-info
 praktikum/benchmarkOutput
+praktikum/failed

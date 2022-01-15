@@ -23,6 +23,22 @@ Repository for group Megaman, course: Graphentheorie WS2021
   - **42**: Same as **41**, but uses the provided `_compute_deltas` method from the `erdbeermet` package to compute the spike lengths
   - **all**: Executes all of the above mentioned workpackages sequentially
 - When using `-w` a subfolder `benchmarkOutput` will be created containing the benchmark results
+- Failed recognitions are stored in a subfolder `failed` for further investigations
+- When using `-d` logs will be stored in a subfolder `logs`
+
+## Test matrices
+The `test-matrices` directory contains multiple generated sets of matrices, which can be used as input for `run.py`
+- `gen.py` can be used to create more sets
+- Each matrice filename contains all needed informations about the stored matrice (excluding ".txt"):
+  - Last character: Clocklike: `o = yes`, `- = no`
+  - Second last character: Circular: `i = yes`, `- = no`
+  - Fourth last character: Number of leaves inside the matrice (between 5 and 10)
+  - Rest: ID inside this set of matrices
+  - Example: `04-9-i-.txt`
+    - ID = 04
+    - Number of leaves: 9
+    - Circular: yes
+    - Clocklike: no
 
 ## References
 - [Erdbeermet](https://github.com/david-schaller/Erdbeermet)

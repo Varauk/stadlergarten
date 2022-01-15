@@ -199,7 +199,7 @@ class Benchmark:
 
         # check the failed marker and write it to a specific directory if we didn't found a valid solution.
         if failedMarker: 
-            print(f"Failed: {path}")
+            info(f"Failed: {path}")
             self.write_failed_recognition(path)
                 
         # Stop the timer and return the results
