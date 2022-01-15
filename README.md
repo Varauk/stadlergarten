@@ -22,8 +22,8 @@ Repository for group Megaman, course: Graphentheorie WS2021
   - **41**: Runs the pipeline according to the description in WP4
   - **42**: Same as **41**, but uses the provided `_compute_deltas` method from the `erdbeermet` package to compute the spike lengths
   - **all**: Executes all of the above mentioned workpackages sequentially
-- When using `-w` a subfolder `benchmarkOutput` will be created containing the benchmark results
-- Failed recognitions are stored in a subfolder `failed` for further investigations
+- When using `-w` a subfolder `benchmarkOutput` will be created containing the benchmark results (subsequent runs will overwrite previous ouput)
+- Failed recognitions are stored in a subfolder `failed` for further investigations (subsequent runs on different workpackages will overwrite previous workpackage related messages)
 - When using `-d` logs will be stored in a subfolder `logs`
 
 ## Test matrices
