@@ -40,10 +40,6 @@ class WorkPackage(Enum):
         else:
             return None
 
-    def get_first_leaves(self) -> List[int]:
-        '''Return the first leaves for this workpackage'''
-        return [0, 1, 2, 3]
-
     @staticmethod
     def from_cli_arg(arg: str) -> List['WorkPackage']:
         map = {'2': WorkPackage.WP2,

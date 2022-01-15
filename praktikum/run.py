@@ -60,7 +60,6 @@ def execute_workpackage(wp: WorkPackage,
     return benchmark_all(test_set=test_set,
                          work_package=wp,
                          plot_when=plot_when,
-                         first_leaves=wp.get_first_leaves(),
                          forbidden_leaves=wp.get_forbidden_leaves(),
                          nr_of_cores=nr_of_cores)
 

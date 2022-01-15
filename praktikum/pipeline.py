@@ -133,10 +133,10 @@ class Benchmark:
         # scenario.N has the number of items which were generated.
         # So we need all subsets of N items with 3 respectively 4 leaves.
         # ForbiddenLeaves is an int at the end of WP3.4 and a list at WP3.3
-        combinationsOfLeafes = expand_leaves(self.forbidden_leaves, scenario.N)
+        combinationsOfLeaves = expand_leaves(self.forbidden_leaves, scenario.N)
         stats = BenchmarkStatistics()
         # Rotate until you find a valid solution
-        for combination in combinationsOfLeafes:
+        for combination in combinationsOfLeaves:
             info(f'Checked combination of core leaves: {combination}')
             # The first leaves must correspond to the ones which
             # are forbidden and therefore can't be deleted
@@ -280,11 +280,11 @@ def recognize_wrapper(D: List[int],
 
     # Choose random one of the nodes as stated in WP2
     choosen_node = random.choice(possible_node_set)
-    info(f'Randomly choosen last node: {choosen_node.V} | Corresponding first leafes: {first_leaves}')
+    info(f'Randomly choosen last node: {choosen_node.V} | Corresponding first leaves: {first_leaves}')
     # Check current list of chosen_node against passLeafes-list
     if set(first_leaves).issubset(set(choosen_node.V)):
         output.classified_as_matching_four_leaves = True
-        info('Leafes matched!')
+        info('Leaves matched!')
 
     # Check: Do the R-Steps from the reconstructed tree
     # diverge from the original R-Steps?
@@ -376,8 +376,8 @@ def expand_leaves(leaves: Union[List[int], int, None],
     if type(leaves) is list:
         return [leaves]
     elif type(leaves) is int:
-        possible_leafes = range(count)
-        leav_combinations = itertools.combinations(possible_leafes, leaves)
+        possible_leaves = range(count)
+        leav_combinations = itertools.combinations(possible_leaves, leaves)
         leav_lists = [list(tupl) for tupl in leav_combinations]
         # We reverse the list because the solution [0,1,2,3]
         # is always trivial and the first.
@@ -424,7 +424,6 @@ def benchmark_all(test_set: Path,
                   nr_of_cores: Optional[int],
                   plot_when: PlotWhen,
                   work_package: WorkPackage,
-                  first_leaves: List[int],
                   forbidden_leaves: Union[List[int], int, None] = None
                   ) -> BenchmarkStatistics:
     '''
