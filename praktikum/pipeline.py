@@ -17,6 +17,7 @@ from functools import reduce
 import zipfile
 import os
 from datetime import datetime
+from shutil import copyfile
 
 # Own classes
 from output import Output
@@ -135,6 +136,10 @@ class Benchmark:
         # ForbiddenLeaves is an int at the end of WP3.4 and a list at WP3.3
         combinationsOfLeaves = expand_leaves(self.forbidden_leaves, scenario.N)
         stats = BenchmarkStatistics()
+        
+        # Need a marker for failed Recognitions even after all combinations were tested
+        failedMarker = True
+        
         # Rotate until you find a valid solution
         for combination in combinationsOfLeaves:
             info(f'Checked combination of core leaves: {combination}')
@@ -177,20 +182,41 @@ class Benchmark:
                 # to modify overall values of benchmark
                 if (output.classified_as_r_map):
                     stats.numberOfRMaps += 1
+                    
+                    # At this point we found a valid solution
+                    failedMarker = False
+                    
                 if (output.classified_as_matching_four_leaves):
                     stats.numberOfMatchingFourLeafs += 1
                 stats.sumOfDivergenceWithOrder += output.divergence_with_order
                 stats.sumOfDivergenceWithoutOrder += output.divergence_without_order
-
+                
                 # When we are in WP3, we are finished with the first
                 # valid R-Map, so break the loop here.
                 if (self.work_package == WorkPackage.WP3_3_1
                    or self.work_package == WorkPackage.WP3_3_2):
                     break
 
+        # check the failed marker and write it to a specific directory if we didn't found a valid solution.
+        if failedMarker: 
+            print(f"Failed: {path}")
+            self.write_failed_recognition(path)
+                
         # Stop the timer and return the results
         stats.stop_timer()
         return stats
+    
+    def write_failed_recognition(self, path: Path) -> None:
+        # Kopiere die Datei von Path ins Failed Directory 
+        os.makedirs('failed', exist_ok=True)
+
+        filename = Path('failed') / Path(path.parts[-1])
+        copyfile(path, filename)
+
+        # Hänge die Info zum Workpackage an.
+        with open(filename, 'a') as f:
+            f.write('\n\n')
+            f.write(f'Recognition algorithm failed for workpackage {self.work_package}.')
 
 
 def pipeline(history: History,
