@@ -29,10 +29,16 @@ Repository for group Megaman, course: Graphentheorie WS2021
 ## Test matrices
 The `test-matrices` directory contains multiple generated sets of matrices, which can be used as input for `run.py`
 - `gen.py` can be used to create more sets
-- Each matrice filename contains all needed informations about the stored matrice (excluding ".txt"):
+- Available sets:
+  - **small**: 50 matrices
+  - **medium**: 1.000 matrices
+  - **large**: 10.000 matrices
+  - **omega**: 25.000 matrices
+  - **tav**: 100.000 matrices
+- Each matrix filename contains all needed informations about the stored matrix (excluding ".txt"):
   - Last character: Clocklike: `o = yes`, `- = no`
   - Second last character: Circular: `i = yes`, `- = no`
-  - Fourth last character: Number of leaves inside the matrice (between 5 and 10)
+  - Fourth last character: Number of leaves inside the matrix (between 5 and 10)
   - Rest: ID inside this set of matrices
   - Example: `04-9-i-.txt`
     - ID = 04
