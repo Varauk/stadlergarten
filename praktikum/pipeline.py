@@ -98,7 +98,7 @@ class BenchmarkStatistics:
 
     def writeToFile(self, work_package: WorkPackage) -> None:
         os.makedirs('benchmarkOutput', exist_ok=True)
-        filename = Path('benchmarkOutput') / Path('benchmark_wp' + str(work_package) + '.txt')
+        filename = Path('benchmarkOutput') / Path('benchmark_' + str(work_package) + '.txt')
         with open(filename, 'w') as f:
             f.write('workpackage=' + str(work_package) + '\n')
             f.write('totalRuntime=' + str(self.total_runtime) + '\n')
