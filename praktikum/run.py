@@ -6,6 +6,8 @@ from typing import Final, List, Optional
 from pathlib import Path
 from timeit import default_timer as timer
 from datetime import datetime
+import sys
+import random
 
 import pipeline
 from pipeline import benchmark_all, BenchmarkStatistics
@@ -43,7 +45,7 @@ def parse_cli_arguments() -> Namespace:
     parser.add_argument('--writeResultsToFiles', '-w', action='store_true')
     parser.add_argument('--seed',
                         help='RNG seed to use',
-                        default=None)
+                        default=random.randrange(sys.maxsize))
     return parser.parse_args()
 
 
@@ -58,7 +60,7 @@ def setup_logging(enable_debug: bool) -> None:
 
 def execute_workpackage(wp: WorkPackage,
                         test_set: Path,
-                        rng_seed: Optional[int],
+                        rng_seed: int,
                         nr_of_cores: Optional[int],
                         plot_when: PlotWhen) -> BenchmarkStatistics:
     return benchmark_all(test_set=test_set,
@@ -71,7 +73,7 @@ def execute_workpackage(wp: WorkPackage,
 
 def execute_workpackages(workpackages: List[WorkPackage],
                          test_set: Path,
-                         rng_seed: Optional[int],
+                         rng_seed: int,
                          plot_when: PlotWhen,
                          nr_of_cores: Optional[int],
                          write_results: bool) -> None:
@@ -106,6 +108,8 @@ def execute_workpackages(workpackages: List[WorkPackage],
 def main() -> None:
     args = parse_cli_arguments()
     setup_logging(args.debug)
+    # Announce our seed
+    logging.warning(f'Using seed "{args.seed}" for every iteration!')
     # Select test set directory
     test_set = TEST_SET_DIR/args.test_set
     # Plot when?

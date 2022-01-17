@@ -34,6 +34,7 @@ class BenchmarkStatistics:
     numberOfMatchingFourLeafs: int
     sumOfDivergenceWithOrder: float
     sumOfDivergenceWithoutOrder: float
+    rng_seed: int
 
     # set by pretty_print after a benchmark
     correctly_classified: float
@@ -42,20 +43,21 @@ class BenchmarkStatistics:
     divergence_unordered: float
     total_runtime: float
 
-    def __init__(self) -> None:
+    def __init__(self, rng_seed: int) -> None:
         self.timer_start = timer()
         self.timer_end = None
         self.numberOfRMaps = 0
         self.numberOfMatchingFourLeafs = 0
         self.sumOfDivergenceWithOrder = 0.0
         self.sumOfDivergenceWithoutOrder = 0.0
+        self.rng_seed = rng_seed
 
     def stop_timer(self) -> None:
         self.timer_end = timer()
 
     def add(left: 'BenchmarkStatistics',
             right: 'BenchmarkStatistics') -> 'BenchmarkStatistics':
-        sum = BenchmarkStatistics()
+        sum = BenchmarkStatistics(left.rng_seed)
         sum.timer_start = min(left.timer_start, right.timer_start)
         # Make sure our timers are not None, if they are,
         # I'll assume they'll run forever
@@ -84,6 +86,7 @@ class BenchmarkStatistics:
             self.total_runtime = float('inf')
 
         prettyTime = pretty_time(self.total_runtime)
+        seed = f'RNG Seed: {self.rng_seed :>10}'
 
         print(f'''
   +--------------= Benchmark =---------------+
@@ -94,6 +97,7 @@ class BenchmarkStatistics:
   |    Proportion of 4-leaf-maps: {self.prop_4_leaf :>10.2%} |
   |  Avg. divergence   (ordered): {self.divergence_ordered :>10.2%} |
   |  Avg. divergence (unordered): {self.divergence_unordered :>10.2%} |
+  | {seed :>40} |
   +------------------------------------------+
         ''')
 
@@ -116,12 +120,12 @@ class Benchmark:
     work_package: WorkPackage
     forbidden_leaves: Union[List[int], int, None]
     plot_when: PlotWhen
-    rng_seed: Optional[int]
+    rng_seed: int
 
     def __init__(self,
                  plot_when: PlotWhen,
                  work_package: WorkPackage,
-                 rng_seed: Optional[int],
+                 rng_seed: int,
                  forbidden_leaves: Union[List[int], int, None]) -> None:
         self.work_package = work_package
         self.forbidden_leaves = forbidden_leaves
@@ -142,7 +146,7 @@ class Benchmark:
         # So we need all subsets of N items with 3 respectively 4 leaves.
         # ForbiddenLeaves is an int at the end of WP3.4 and a list at WP3.3
         combinationsOfLeaves = expand_leaves(self.forbidden_leaves, scenario.N)
-        stats = BenchmarkStatistics()
+        stats = BenchmarkStatistics(self.rng_seed)
         
         # Need a marker for failed Recognitions even after all combinations were tested
         failedMarker = True
@@ -456,7 +460,7 @@ def expand_hists_file(filePaths: List[Path]) -> List[Path]:
 def benchmark_all(test_set: Path,
                   nr_of_cores: Optional[int],
                   plot_when: PlotWhen,
-                  rng_seed: Optional[int],
+                  rng_seed: int,
                   work_package: WorkPackage,
                   forbidden_leaves: Union[List[int], int, None] = None
                   ) -> BenchmarkStatistics:
