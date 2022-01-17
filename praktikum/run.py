@@ -41,6 +41,9 @@ def parse_cli_arguments() -> Namespace:
                         help='Number of cores to use',
                         default=None)
     parser.add_argument('--writeResultsToFiles', '-w', action='store_true')
+    parser.add_argument('--seed',
+                        help='RNG seed to use',
+                        default=None)
     return parser.parse_args()
 
 
@@ -55,10 +58,12 @@ def setup_logging(enable_debug: bool) -> None:
 
 def execute_workpackage(wp: WorkPackage,
                         test_set: Path,
+                        rng_seed: Optional[int],
                         nr_of_cores: Optional[int],
                         plot_when: PlotWhen) -> BenchmarkStatistics:
     return benchmark_all(test_set=test_set,
                          work_package=wp,
+                         rng_seed=rng_seed,
                          plot_when=plot_when,
                          forbidden_leaves=wp.get_forbidden_leaves(),
                          nr_of_cores=nr_of_cores)
@@ -66,6 +71,7 @@ def execute_workpackage(wp: WorkPackage,
 
 def execute_workpackages(workpackages: List[WorkPackage],
                          test_set: Path,
+                         rng_seed: Optional[int],
                          plot_when: PlotWhen,
                          nr_of_cores: Optional[int],
                          write_results: bool) -> None:
@@ -79,6 +85,7 @@ def execute_workpackages(workpackages: List[WorkPackage],
     for wp in workpackages:
         statistics = execute_workpackage(wp=wp,
                                          test_set=test_set,
+                                         rng_seed=rng_seed,
                                          plot_when=plot_when,
                                          nr_of_cores=nr_of_cores)
         # If requested, save the results
@@ -113,6 +120,7 @@ def main() -> None:
     # Execute selected workpackage
     execute_workpackages(workpackages=workpackages,
                          test_set=test_set,
+                         rng_seed=args.seed,
                          plot_when=plot_when,
                          nr_of_cores=nr_of_cores,
                          write_results=args.writeResultsToFiles)

@@ -116,16 +116,23 @@ class Benchmark:
     work_package: WorkPackage
     forbidden_leaves: Union[List[int], int, None]
     plot_when: PlotWhen
+    rng_seed: Optional[int]
 
     def __init__(self,
                  plot_when: PlotWhen,
                  work_package: WorkPackage,
+                 rng_seed: Optional[int],
                  forbidden_leaves: Union[List[int], int, None]) -> None:
         self.work_package = work_package
         self.forbidden_leaves = forbidden_leaves
         self.plot_when = plot_when
+        self.rng_seed = rng_seed
 
     def __call__(self, path: Path) -> BenchmarkStatistics:
+        # We need to reset the seed here, because we're in a new process?
+        # This will be reset for every single path, which sucks, but
+        # it could be worse, nothing here needs 'security', it's just numbers
+        random.seed(self.rng_seed)
         # Load the corresponding matrix with a new Output Object
         scenario = load(filename=path)
         # Write here the Wrapper which shall guess the core leaves and
@@ -449,6 +456,7 @@ def expand_hists_file(filePaths: List[Path]) -> List[Path]:
 def benchmark_all(test_set: Path,
                   nr_of_cores: Optional[int],
                   plot_when: PlotWhen,
+                  rng_seed: Optional[int],
                   work_package: WorkPackage,
                   forbidden_leaves: Union[List[int], int, None] = None
                   ) -> BenchmarkStatistics:
@@ -457,6 +465,8 @@ def benchmark_all(test_set: Path,
     pipeline on it. Generate a new Output-Object for every of them
     and sum up Runtimes etc.
     '''
+    # Reset the seed here once, to make sure this thread is behaving aswell
+    random.seed(rng_seed)
     # Load the files
     filePaths = list(test_set.glob('*'))
     # Large test sets are compressed into a single zip file
@@ -468,6 +478,7 @@ def benchmark_all(test_set: Path,
 
     # Eww, my CPU get's so bored by this ~ USE THE DAMN CORES!
     benchmark = Benchmark(work_package=work_package,
+                          rng_seed=rng_seed,
                           forbidden_leaves=forbidden_leaves,
                           plot_when=plot_when)
     # Construct our statistics on all cores
@@ -479,6 +490,7 @@ def benchmark_all(test_set: Path,
     final_statistic = reduce(BenchmarkStatistics.add, statistics_iter)
     final_statistic.pretty_print(number_of_scenarios, work_package)
     return final_statistic
+
 
 def pretty_time(secondsFloat: float) -> str:
     seconds = int(secondsFloat)
