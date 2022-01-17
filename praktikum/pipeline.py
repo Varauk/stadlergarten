@@ -200,21 +200,21 @@ class Benchmark:
         # check the failed marker and write it to a specific directory if we didn't found a valid solution.
         if failedMarker: 
             info(f"Failed: {path}")
-            self.write_failed_recognition(path)
+            self.write_failed_recognition(path, self.work_package)
                 
         # Stop the timer and return the results
         stats.stop_timer()
         return stats
-    
-    def write_failed_recognition(self, path: Path) -> None:
-        # Kopiere die Datei von Path ins Failed Directory 
-        os.makedirs('failed', exist_ok=True)
 
-        filename = Path('failed') / Path(path.parts[-1])
-        copyfile(path, filename)
-
+    def write_failed_recognition(self, path: Path, wp: WorkPackage) -> None:
+        # Create parent directory (failed/WPx)
+        target_dir = Path('failed') / Path(str(wp))
+        target_dir.mkdir(exist_ok=True, parents=True)
+        # Prepend the target with 'failed/'
+        target = target_dir / path.name
+        copyfile(path, target)
         # Hänge die Info zum Workpackage an.
-        with open(filename, 'a') as f:
+        with open(target, 'a') as f:
             f.write('\n\n')
             f.write(f'Recognition algorithm failed for workpackage {self.work_package}.')
 
