@@ -24,7 +24,7 @@ Repository for group Megaman, course: Graphentheorie WS2021
   - **all**: Executes all of the above mentioned workpackages sequentially
 - When using `-w` a subfolder `benchmarkOutput` will be created containing the benchmark results (subsequent runs will overwrite previous ouput)
 - Failed recognitions are stored in a subfolder `failed` for further investigations (subsequent runs on different workpackages will overwrite previous workpackage related messages)
-- When using `-d` logs will be stored in a subfolder `logs`
+- When using `-d` logs will be stored in a subfolder `logs`. Only available on Linux.
 
 ## Test matrices
 The `test-matrices` directory contains multiple generated sets of matrices, which can be used as input for `run.py`
