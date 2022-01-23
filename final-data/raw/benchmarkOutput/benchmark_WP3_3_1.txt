@@ -1,0 +1,7 @@
+workpackage=WP3_3_1
+totalRuntime=136259.10818889737
+correctlyClassified=0.99995
+correctlyClassifiedRmaps=0.99995
+avgDivergenceOrdered=0.5861235000000021
+avgDivergenceUnordered=0.45084266666665906
+timestamp=2022-01-19 07:38:47.724342
