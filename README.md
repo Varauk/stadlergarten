@@ -46,6 +46,9 @@ The `test-matrices` directory contains multiple generated sets of matrices, whic
     - Circular: yes
     - Clocklike: no
 
+## Final test data
+The final results of our test runs can be found [here](./final-data/raw/).
+
 ## References
 - [Erdbeermet](https://github.com/david-schaller/Erdbeermet)
 - [Praktikumsunterlagen](http://silo.bioinf.uni-leipzig.de/GTPraktikumRMaps/)
